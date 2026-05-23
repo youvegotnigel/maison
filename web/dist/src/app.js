@@ -45,7 +45,7 @@ function renderHeader() {
   const cartCount = state.cart.count || 0;
   header.innerHTML = `
     <div class="container">
-      <div class="brand" data-testid="brand" onclick="location.hash='#/'">MAISON<small>MAISON DE LUXE</small></div>
+      <div class="brand" data-testid="brand">MAISON<small>MAISON DE LUXE</small></div>
       <nav class="nav" aria-label="Primary">
         <a href="#/" data-testid="nav-shop">Shop</a>
         ${u && u.role === 'seller' ? `<a href="#/seller" data-testid="nav-seller">Atelier</a>` : ''}
@@ -56,10 +56,13 @@ function renderHeader() {
           </a>` : ''}
         ${u
           ? `<span class="tiny" data-testid="current-user" data-role="${esc(u.role)}">${esc(u.name)}</span>
-             <a href="#" data-testid="logout-link" onclick="event.preventDefault();window.__logout()">Logout</a>`
+             <a href="#" data-testid="logout-link">Logout</a>`
           : `<a href="#/login" data-testid="nav-login">Sign In</a>`}
       </nav>
     </div>`;
+  header.querySelector('[data-testid="brand"]').onclick = () => { location.hash = '#/'; };
+  const logoutLink = header.querySelector('[data-testid="logout-link"]');
+  if (logoutLink) logoutLink.onclick = (e) => { e.preventDefault(); window.__logout(); };
 }
 
 window.__logout = async () => {
