@@ -1,10 +1,10 @@
-# Maison — Luxury E-Commerce Demo
+# Maison - Luxury E-Commerce Demo
 
-A two-sided luxury marketplace built as an **Application Under Test (AUT)** for a Playwright
+A two sided luxury marketplace built as an **Application Under Test (AUT)** for a Playwright
 automation framework. It deliberately exercises four testing pillars: **UI, API, Accessibility,
 and Security.**
 
-Everything runs locally in a **single Node process** — the Express server hosts both the JSON
+Everything runs locally in a **single Node process.** The Express server hosts both the JSON
 API and the static frontend on one port. No external database, no build step, no internet
 dependency (product imagery is generated inline as SVG data-URIs).
 
