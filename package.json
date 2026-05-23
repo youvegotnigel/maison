@@ -12,7 +12,8 @@
     "start": "node --experimental-sqlite server/src/index.js",
     "test:smoke": "node verify.mjs",
     "test": "playwright test",
-    "test:ui": "playwright test --ui"
+    "test:ui": "playwright test --ui",
+    "test:debug": "playwright test --debug"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.11.3",
