@@ -13,8 +13,13 @@
     "start": "node server/src/index.js",
     "test:smoke": "node verify.mjs",
     "test": "playwright test",
-    "test:ui": "playwright test --ui",
-    "test:debug": "playwright test --debug"
+    "test:open": "playwright test --ui",
+    "test:debug": "playwright test --debug",
+    "test:ui": "playwright test tests/ui.spec.js",
+    "test:mobile": "playwright test tests/mobile.spec.js",
+    "test:api": "playwright test tests/api.spec.js",
+    "test:security": "playwright test tests/security.spec.js",
+    "test:a11y": "playwright test tests/a11y.spec.js"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.11.3",
