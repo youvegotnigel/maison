@@ -4,6 +4,10 @@ on:
   push:
     branches: [master]
     tags: ['v*.*.*']
+    paths:
+      - 'server/**'
+      - 'web/**'
+      - 'Dockerfile'
 
 jobs:
   build-and-push:
