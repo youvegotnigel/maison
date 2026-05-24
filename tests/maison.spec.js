@@ -245,4 +245,44 @@ test.describe('Mobile · responsive layout', () => {
     await expect(page.getByTestId('nav-shop')).not.toBeVisible();
     await expect(page.getByTestId('catalogue')).toBeVisible();
   });
+
+  test('buyer can complete purchase on mobile', async ({ page }) => {
+    await page.goto(BASE);
+    await expect(page.locator('body')).toHaveAttribute('data-app-ready', 'true');
+
+    // Sign in via hamburger menu
+    await page.getByTestId('nav-toggle').click();
+    await page.getByTestId('nav-login').click();
+    await page.getByTestId('login-email').fill('buyer@maison.test');
+    await page.getByTestId('login-password').fill(PASSWORD);
+    await page.getByTestId('login-submit').click();
+    await expect(page.getByTestId('current-user')).toHaveAttribute('data-role', 'buyer');
+
+    // Search
+    await page.getByTestId('search-input').fill('tote');
+    await page.getByTestId('search-submit').click();
+    await expect(page.getByTestId('product-card')).toHaveCount(1);
+
+    // Open product, add to cart
+    await page.getByTestId('product-card').first().click();
+    await expect(page.getByTestId('product-detail')).toBeVisible();
+    await page.getByTestId('qty-incr').click();
+    await page.getByTestId('add-to-cart').click();
+    await expect(page.getByTestId('cart-count')).toHaveText('2');
+
+    // Navigate to cart via hamburger
+    await page.getByTestId('nav-toggle').click();
+    await page.getByTestId('nav-cart').click();
+    await expect(page.getByTestId('summary-subtotal')).toHaveText('$4,845.00');
+    await page.getByTestId('checkout-button').click();
+
+    // Fill shipping and place order
+    await page.getByTestId('ship-address').fill('1 Rue de Rivoli');
+    await page.getByTestId('ship-city').fill('Paris');
+    await page.getByTestId('ship-postal').fill('75001');
+    await page.getByTestId('place-order').click();
+
+    await expect(page.getByTestId('order-confirmation')).toBeVisible();
+    await expect(page.getByTestId('order-reference')).toContainText('ORD-');
+  });
 });
