@@ -188,3 +188,17 @@ test.describe('Accessibility · WCAG', () => {
     await expect(page.getByTestId('skip-link')).toBeAttached();
   });
 });
+
+// ------------------------------------------------------------
+//  Mobile — responsive layout
+// ------------------------------------------------------------
+test.describe('Mobile · responsive layout', () => {
+  test.use({ viewport: { width: 375, height: 812 } });
+
+  test('shop page has no horizontal overflow', async ({ page }) => {
+    await page.goto(BASE);
+    await expect(page.locator('body')).toHaveAttribute('data-app-ready', 'true');
+    const scrollWidth = await page.evaluate(() => document.body.scrollWidth);
+    expect(scrollWidth).toBeLessThanOrEqual(375);
+  });
+});

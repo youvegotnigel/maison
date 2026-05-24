@@ -181,7 +181,7 @@ h1, h2, h3, h4 { font-family: var(--serif); font-weight: 500; line-height: 1.1; 
 .toolbar { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; margin-bottom: 34px; }
 .toolbar input, .toolbar select { background: var(--ink-3); border: 1px solid var(--line); color: var(--cream); padding: 11px 14px; border-radius: var(--radius); font-family: var(--sans); font-size: 0.9rem; }
 .toolbar input:focus, .toolbar select:focus { outline: none; border-color: var(--gold); }
-.toolbar input[type="search"] { min-width: 260px; flex: 1; }
+.toolbar input[type="search"] { width: 100%; flex: 1 1 200px; }
 
 /* ---------- Seller dashboard ---------- */
 .dash-grid { display: grid; grid-template-columns: 360px 1fr; gap: 48px; align-items: start; }
