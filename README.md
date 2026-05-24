@@ -22,6 +22,63 @@ Open **http://localhost:4000**.
 
 Requirements: **Node.js 22.5+** (uses the built-in `node:sqlite` module — no native build).
 
+---
+
+## Run locally with Docker (no Node required)
+
+If you'd rather not install Node, you can run the entire app inside Docker. One command starts it; Ctrl+C stops everything cleanly.
+
+**Build the image (one-time, ~1 min):**
+
+```bash
+docker build -t maison:latest .
+```
+
+**Start the app:**
+
+```bash
+docker run --rm -p 4000:4000 maison:latest
+```
+
+Open **http://localhost:4000**. Press **Ctrl+C** to stop — the container exits and is removed automatically (`--rm`). Nothing lingers.
+
+Requirements: **Docker Desktop** — no Node, no npm, no other tools needed.
+
+---
+
+## Publish to Docker Hub
+
+### Manual (one-time or ad-hoc)
+
+1. [Create a free Docker Hub account](https://hub.docker.com/signup) and a public repository named `maison`.
+2. Log in and push:
+
+```bash
+docker login
+docker build -t YOUR_DOCKERHUB_USERNAME/maison:latest .
+docker push YOUR_DOCKERHUB_USERNAME/maison:latest
+```
+
+Anyone can then pull and run your image without cloning the repo:
+
+```bash
+docker run --rm -p 4000:4000 YOUR_DOCKERHUB_USERNAME/maison:latest
+```
+
+### Automated via GitHub Actions (publish on every push)
+
+The workflow at [.github/workflows/docker-publish.yml](.github/workflows/docker-publish.yml) builds and pushes automatically. Set it up once:
+
+1. Go to **Docker Hub → Account Settings → Security → New Access Token** and copy the token.
+2. Go to **GitHub repo → Settings → Secrets and variables → Actions** and add:
+   - `DOCKERHUB_USERNAME` — your Docker Hub username
+   - `DOCKERHUB_TOKEN` — the token from step 1
+3. Push to `master` (or tag a release with `v*.*.*`) — the image publishes automatically.
+
+The workflow builds for both `linux/amd64` and `linux/arm64` (Apple Silicon), so the image runs natively on any machine.
+
+---
+
 ### Demo accounts (password `Password123!`)
 
 | Email                 | Role   |
