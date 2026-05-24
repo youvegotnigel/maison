@@ -1,7 +1,7 @@
 # Maison - Luxury E-Commerce Demo
 
 A two sided luxury marketplace built as an **Application Under Test (AUT)** for a Playwright
-automation framework. It deliberately exercises four testing pillars: **UI, API, Accessibility,
+automation framework. It deliberately exercises five testing pillars: **UI, Mobile, API, Accessibility,
 and Security.**
 
 Everything runs locally in a **single Node process.** The Express server hosts both the JSON
@@ -81,7 +81,11 @@ maison/
 │       ├── styles.css      # luxury design system
 │       └── src/{app.js, api.js}   # SPA + API client
 └── tests/
-    └── maison.spec.js      # sample Playwright tests (UI/API/Security/A11y)
+    ├── ui.spec.js          # UI end-to-end: buyer purchase flow, seller dashboard
+    ├── mobile.spec.js      # Mobile: responsive layout, hamburger nav, purchase flow
+    ├── api.spec.js         # API contract: catalogue, transactional checkout
+    ├── security.spec.js    # Security: RBAC, IDOR, auth headers
+    └── a11y.spec.js        # Accessibility: WCAG landmark checks (axe-core scaffold)
 ```
 
 ---
@@ -129,7 +133,14 @@ npm start                                  # terminal 1
 # terminal 2:
 npm i -D @playwright/test @axe-core/playwright
 npx playwright install
-npx playwright test tests/maison.spec.js
+
+npm test                   # run all five suites
+npm run test:ui            # UI only
+npm run test:mobile        # Mobile only
+npm run test:api           # API only
+npm run test:security      # Security only
+npm run test:a11y          # Accessibility only
+npm run test:open          # Playwright interactive UI (suite picker)
 ```
 
 The sample suite covers a buyer purchase journey, seller listing management, API contract checks,
