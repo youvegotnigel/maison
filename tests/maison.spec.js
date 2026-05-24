@@ -216,4 +216,11 @@ test.describe('Mobile · responsive layout', () => {
     const scrollWidth = await page.evaluate(() => document.body.scrollWidth);
     expect(scrollWidth).toBeLessThanOrEqual(375);
   });
+
+  test('hamburger button is visible and nav links are hidden by default', async ({ page }) => {
+    await page.goto(BASE);
+    await expect(page.locator('body')).toHaveAttribute('data-app-ready', 'true');
+    await expect(page.getByTestId('nav-toggle')).toBeVisible();
+    await expect(page.getByTestId('nav-shop')).not.toBeVisible();
+  });
 });

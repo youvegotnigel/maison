@@ -194,6 +194,26 @@ h1, h2, h3, h4 { font-family: var(--serif); font-weight: 500; line-height: 1.1; 
 .footer { border-top: 1px solid var(--line); margin-top: 60px; padding: 40px 0; color: var(--muted); font-size: 0.82rem; }
 .footer .spread { flex-wrap: wrap; gap: 14px; }
 
+/* ---------- Hamburger toggle ---------- */
+.nav-toggle {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  cursor: pointer;
+  padding: 10px;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+}
+.nav-toggle span { display: block; height: 1px; background: var(--cream); transition: transform 0.2s, opacity 0.2s; }
+.nav-toggle[aria-expanded="true"] span:nth-child(1) { transform: translateY(6px) rotate(45deg); }
+.nav-toggle[aria-expanded="true"] span:nth-child(2) { opacity: 0; }
+.nav-toggle[aria-expanded="true"] span:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
+
 /* ---------- Modal ---------- */
 .modal-backdrop { position: fixed; inset: 0; background: rgba(8,7,6,0.74); backdrop-filter: blur(4px); z-index: 100; display: flex; align-items: center; justify-content: center; padding: 24px; }
 .modal { background: var(--ink-2); border: 1px solid var(--line); border-radius: var(--radius); max-width: 480px; width: 100%; padding: 36px; }
@@ -228,6 +248,7 @@ h1, h2, h3, h4 { font-family: var(--serif); font-weight: 500; line-height: 1.1; 
   .nav a.hide-sm { display: none; }
 }
 @media (max-width: 560px) {
+  /* Cart line: 2-row grid layout */
   .cart-line {
     grid-template-columns: 60px 1fr 1fr auto;
     grid-template-rows: auto auto;
@@ -242,8 +263,20 @@ h1, h2, h3, h4 { font-family: var(--serif); font-weight: 500; line-height: 1.1; 
   .cart-line > *:nth-child(3) { grid-area: qty; }
   .cart-line > *:nth-child(4) { grid-area: price; }
   .cart-line > *:nth-child(5) { grid-area: remove; }
+  /* Base layout */
   .brand { font-size: 1.3rem; letter-spacing: 0.2em; }
   .container { padding: 0 18px; }
-  .nav { gap: 10px; }
-  [data-testid="current-user"] { display: none; }
+  /* Hamburger toggle: show button */
+  .nav-toggle { display: flex; }
+  .masthead .container { position: relative; }
+  /* Nav: hidden panel, slides down when open */
+  .nav {
+    position: absolute; top: 76px; left: 0; right: 0;
+    flex-direction: column; align-items: stretch; gap: 0;
+    max-height: 0; overflow: hidden; transition: max-height 0.3s ease;
+    background: rgba(16,15,13,0.96); backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--line); z-index: 49;
+  }
+  /* Hide all nav children until menu opens */
+  .nav > * { display: none; }
 }
