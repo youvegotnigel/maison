@@ -87,6 +87,25 @@ The workflow at [.github/workflows/docker-publish.yml](.github/workflows/docker-
 
 The workflow builds for both `linux/amd64` and `linux/arm64` (Apple Silicon), so the image runs natively on any machine.
 
+### Releasing a new version
+
+Pushes to `master` automatically keep the `latest` tag up to date. To publish a numbered release:
+
+```bash
+git tag v1.2.0
+git push origin v1.2.0
+```
+
+This publishes `1.2.0`, `1.2`, and `latest` on Docker Hub automatically. Use [semantic versioning](https://semver.org):
+
+| Type of change | Part to bump | Example |
+|----------------|-------------|---------|
+| Bug fix or small tweak | patch | `1.0.0` → `1.0.1` |
+| New feature or API addition | minor | `1.0.0` → `1.1.0` |
+| Breaking change | major | `1.0.0` → `2.0.0` |
+
+Only tag when there is something meaningful to version — don't tag every commit.
+
 ---
 
 ### Demo accounts (password `Password123!`)
