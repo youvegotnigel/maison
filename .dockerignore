@@ -1,0 +1,9 @@
+node_modules
+server/node_modules
+web/node_modules
+.git
+tests
+test-results
+playwright.config.js
+verify.mjs
+*.docx
