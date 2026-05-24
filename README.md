@@ -38,7 +38,7 @@ This app was built test-first. Concretely:
 
 - **Stable `data-testid` hooks** on every interactive element and meaningful piece of state.
   Selectors never depend on text, CSS classes, or DOM position.
-- **Deterministic seed data** — the same 8 products, 3 users, and 2 discounts on every boot.
+- **Deterministic seed data** — the same 22 products, 3 users, and 2 discounts on every boot.
   Tests can assert exact values (e.g. the Noir Tote is always `$2,422.50` after its 15% discount).
 - **`POST /api/v1/_reset`** — rebuilds the seed state instantly for per-test isolation. Call it in
   a `beforeEach`. (In-memory SQLite, so it's fast.)
