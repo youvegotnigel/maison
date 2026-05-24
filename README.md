@@ -1,5 +1,7 @@
 # Maison - Luxury E-Commerce Demo
 
+[![Docker Hub](https://img.shields.io/docker/v/youvegotnigel/maison?sort=semver&label=Docker%20Hub)](https://hub.docker.com/r/youvegotnigel/maison)
+
 A two sided luxury marketplace built as an **Application Under Test (AUT)** for a Playwright
 automation framework. It deliberately exercises five testing pillars: **UI, Mobile, API, Accessibility,
 and Security.**
@@ -55,14 +57,14 @@ Requirements: **Docker Desktop** — no Node, no npm, no other tools needed.
 
 ```bash
 docker login
-docker build -t YOUR_DOCKERHUB_USERNAME/maison:latest .
-docker push YOUR_DOCKERHUB_USERNAME/maison:latest
+docker build -t youvegotnigel/maison:latest .
+docker push youvegotnigel/maison:latest
 ```
 
 Anyone can then pull and run your image without cloning the repo:
 
 ```bash
-docker run --rm -p 4000:4000 YOUR_DOCKERHUB_USERNAME/maison:latest
+docker run --rm -p 4000:4000 youvegotnigel/maison:latest
 ```
 
 ### Automated via GitHub Actions (publish on every push)
