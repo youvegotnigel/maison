@@ -80,6 +80,7 @@ function renderHeader() {
     toggle.setAttribute('aria-label', isOpen ? 'Close navigation' : 'Open navigation');
   };
 
+  // No signal needed — header.innerHTML teardown removes these nodes (and their listeners) on next render.
   nav.querySelectorAll('a').forEach(link => {
     link.addEventListener('click', closeNav);
   });
@@ -93,7 +94,7 @@ function renderHeader() {
   }, { signal });
 
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') closeNav();
+    if (e.key === 'Escape' && nav.classList.contains('nav--open')) closeNav();
   }, { signal });
 
   const logoutLink = header.querySelector('[data-testid="logout-link"]');
