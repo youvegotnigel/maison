@@ -64,6 +64,38 @@ function renderHeader() {
       </nav>
     </div>`;
   header.querySelector('[data-testid="brand"]').onclick = () => { location.hash = '#/'; };
+
+  const toggle = header.querySelector('[data-testid="nav-toggle"]');
+  const nav = header.querySelector('[data-testid="nav-mobile-menu"]');
+
+  function closeNav() {
+    nav.classList.remove('nav--open');
+    toggle.setAttribute('aria-expanded', 'false');
+    toggle.setAttribute('aria-label', 'Open navigation');
+  }
+
+  toggle.onclick = () => {
+    const isOpen = nav.classList.toggle('nav--open');
+    toggle.setAttribute('aria-expanded', String(isOpen));
+    toggle.setAttribute('aria-label', isOpen ? 'Close navigation' : 'Open navigation');
+  };
+
+  nav.querySelectorAll('a').forEach(link => {
+    link.addEventListener('click', closeNav);
+  });
+
+  if (window.__navAbort) window.__navAbort.abort();
+  window.__navAbort = new AbortController();
+  const { signal } = window.__navAbort;
+
+  document.addEventListener('click', (e) => {
+    if (nav.classList.contains('nav--open') && !nav.contains(e.target) && !toggle.contains(e.target)) closeNav();
+  }, { signal });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeNav();
+  }, { signal });
+
   const logoutLink = header.querySelector('[data-testid="logout-link"]');
   if (logoutLink) logoutLink.onclick = (e) => { e.preventDefault(); window.__logout(); };
 }

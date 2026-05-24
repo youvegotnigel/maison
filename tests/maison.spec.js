@@ -223,4 +223,17 @@ test.describe('Mobile · responsive layout', () => {
     await expect(page.getByTestId('nav-toggle')).toBeVisible();
     await expect(page.getByTestId('nav-shop')).not.toBeVisible();
   });
+
+  test('hamburger opens and closes the nav', async ({ page }) => {
+    await page.goto(BASE);
+    await expect(page.locator('body')).toHaveAttribute('data-app-ready', 'true');
+    // open
+    await page.getByTestId('nav-toggle').click();
+    await expect(page.getByTestId('nav-shop')).toBeVisible();
+    await expect(page.getByTestId('nav-toggle')).toHaveAttribute('aria-expanded', 'true');
+    // close
+    await page.getByTestId('nav-toggle').click();
+    await expect(page.getByTestId('nav-shop')).not.toBeVisible();
+    await expect(page.getByTestId('nav-toggle')).toHaveAttribute('aria-expanded', 'false');
+  });
 });

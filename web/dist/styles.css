@@ -279,4 +279,12 @@ h1, h2, h3, h4 { font-family: var(--serif); font-weight: 500; line-height: 1.1; 
   }
   /* Hide all nav children until menu opens */
   .nav > * { display: none; }
+  .nav--open { max-height: 400px; padding: 8px 0; }
+  .nav--open > * { display: flex; align-items: center; }
+  .nav--open a, .nav--open .cart-pill {
+    padding: 14px 28px; width: 100%; font-size: 0.88rem;
+    border-bottom: 1px solid var(--line-soft); border-radius: 0; border-left: none; border-right: none; border-top: none;
+  }
+  .nav--open .cart-pill { gap: 10px; }
+  .nav--open .tiny { padding: 10px 28px; font-size: 0.76rem; }
 }
