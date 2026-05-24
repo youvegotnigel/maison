@@ -144,6 +144,148 @@ npm run test:smoke      # spins up the server, runs ~30 API/static/security asse
 
 ---
 
+## Hosting a demo on AWS (Docker → ECR → App Runner)
+
+Follow these steps to get a public URL anyone can open in a browser, then shut it all down when you're done so you don't pay for anything you're not using.
+
+---
+
+### Before you start — things you need installed once
+
+| Tool | What it is | Install link |
+|------|-----------|--------------|
+| Docker Desktop | Builds and packages the app | https://www.docker.com/products/docker-desktop |
+| AWS CLI | Lets you talk to AWS from the terminal | https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html |
+
+You also need an **AWS account** and your **Account ID** (a 12-digit number — find it in the top-right corner of the AWS Console after logging in).
+
+**Configure AWS CLI** (one-time — paste your Access Key ID and Secret when prompted):
+```bash
+aws configure
+```
+When asked for a region, use `us-east-1` (or whichever region you prefer — just use the same one throughout).
+
+---
+
+### Step 1 — Build the Docker image
+
+Open a terminal in the `maison` folder and run:
+
+```bash
+docker build -t maison:latest .
+```
+
+This packages the app into a container. It takes about a minute the first time.
+
+---
+
+### Step 2 — Create a private container registry on AWS (one-time)
+
+This creates a place on AWS to store the image. You only need to do this once.
+
+```bash
+aws ecr create-repository --repository-name maison --region us-east-1
+```
+
+---
+
+### Step 3 — Log Docker in to AWS
+
+Replace `123456789012` with your actual 12-digit AWS Account ID:
+
+```bash
+aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 123456789012.dkr.ecr.us-east-1.amazonaws.com
+```
+
+You should see `Login Succeeded`.
+
+---
+
+### Step 4 — Upload the image to AWS
+
+Replace `123456789012` with your Account ID:
+
+```bash
+docker tag maison:latest 123456789012.dkr.ecr.us-east-1.amazonaws.com/maison:latest
+docker push 123456789012.dkr.ecr.us-east-1.amazonaws.com/maison:latest
+```
+
+This uploads the image. It takes a minute or two depending on your connection.
+
+---
+
+### Step 5 — Deploy it to App Runner
+
+This creates a running public instance of the app. Replace `123456789012` with your Account ID:
+
+```bash
+aws apprunner create-service \
+  --service-name maison-demo \
+  --source-configuration '{
+    "ImageRepository": {
+      "ImageIdentifier": "123456789012.dkr.ecr.us-east-1.amazonaws.com/maison:latest",
+      "ImageRepositoryType": "ECR",
+      "ImageConfiguration": {
+        "Port": "4000"
+      }
+    },
+    "AutoDeploymentsEnabled": false,
+    "AuthenticationConfiguration": {
+      "AccessRoleArn": "arn:aws:iam::123456789012:role/AppRunnerECRAccessRole"
+    }
+  }' \
+  --region us-east-1
+```
+
+> **Note:** App Runner needs permission to pull from ECR. If you get an error about the role, go to **AWS Console → App Runner → Create Service** and use the UI instead — it creates the IAM role automatically with a single checkbox.
+
+Deployment takes 2–3 minutes. Check progress:
+
+```bash
+aws apprunner describe-service --service-arn <paste the ServiceArn from the output above> --region us-east-1 --query "Service.Status"
+```
+
+When it shows `RUNNING`, your app is live. Get the public URL:
+
+```bash
+aws apprunner describe-service --service-arn <ServiceArn> --region us-east-1 --query "Service.ServiceUrl" --output text
+```
+
+Open that URL in a browser — it's your live demo. Log in with the demo accounts listed above.
+
+---
+
+### Shutting everything down (important — stops all charges)
+
+Run these in order when the demo is finished.
+
+**Delete the App Runner service** (this is what costs money while running):
+```bash
+aws apprunner delete-service --service-arn <ServiceArn> --region us-east-1
+```
+
+**Delete the images from ECR** (small storage cost if left):
+```bash
+aws ecr batch-delete-image \
+  --repository-name maison \
+  --image-ids imageTag=latest \
+  --region us-east-1
+```
+
+**Optionally delete the ECR repository itself** (free when empty, but tidy):
+```bash
+aws ecr delete-repository --repository-name maison --region us-east-1
+```
+
+To confirm nothing is still running:
+```bash
+aws apprunner list-services --region us-east-1
+```
+
+An empty `ServiceSummaryList` means you're all clear and not being charged.
+
+---
+
 ## Security notes (demo-appropriate)
 
 - Passwords hashed with bcrypt; JWT in an `httpOnly`, `SameSite=Lax` cookie.
