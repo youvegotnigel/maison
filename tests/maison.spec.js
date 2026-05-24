@@ -236,4 +236,13 @@ test.describe('Mobile · responsive layout', () => {
     await expect(page.getByTestId('nav-shop')).not.toBeVisible();
     await expect(page.getByTestId('nav-toggle')).toHaveAttribute('aria-expanded', 'false');
   });
+
+  test('can navigate to shop via the mobile menu', async ({ page }) => {
+    await page.goto(BASE + '#/login');
+    await expect(page.locator('body')).toHaveAttribute('data-app-ready', 'true');
+    await page.getByTestId('nav-toggle').click();
+    await page.getByTestId('nav-shop').click();
+    await expect(page.getByTestId('nav-shop')).not.toBeVisible();
+    await expect(page.getByTestId('catalogue')).toBeVisible();
+  });
 });
