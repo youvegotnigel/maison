@@ -30,19 +30,27 @@ Requirements: **Node.js 22.5+** (uses the built-in `node:sqlite` module — no n
 
 If you'd rather not install Node, you can run the entire app inside Docker. One command starts it; Ctrl+C stops everything cleanly.
 
-**Build the image (one-time, ~1 min):**
+**Option A — pull the published image (no clone needed):**
+
+```bash
+docker run --rm -p 4000:4000 youvegotnigel/maison:latest
+```
+
+**Option B — build from source:**
 
 ```bash
 docker build -t maison:latest .
-```
-
-**Start the app:**
-
-```bash
 docker run --rm -p 4000:4000 maison:latest
 ```
 
 Open **http://localhost:4000**. Press **Ctrl+C** to stop — the container exits and is removed automatically (`--rm`). Nothing lingers.
+
+**Verify it's working:**
+
+```bash
+curl http://localhost:4000/api/v1/health
+# {"status":"ok"}
+```
 
 Requirements: **Docker Desktop** — no Node, no npm, no other tools needed.
 
