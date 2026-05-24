@@ -201,4 +201,19 @@ test.describe('Mobile · responsive layout', () => {
     const scrollWidth = await page.evaluate(() => document.body.scrollWidth);
     expect(scrollWidth).toBeLessThanOrEqual(375);
   });
+
+  test('cart page has no horizontal overflow', async ({ page }) => {
+    await page.goto(BASE + '#/login');
+    await expect(page.locator('body')).toHaveAttribute('data-app-ready', 'true');
+    await page.getByTestId('login-email').fill('buyer@maison.test');
+    await page.getByTestId('login-password').fill(PASSWORD);
+    await page.getByTestId('login-submit').click();
+    await expect(page.getByTestId('current-user')).toHaveAttribute('data-role', 'buyer');
+    await page.goto(BASE + '#/product/1');
+    await expect(page.getByTestId('product-detail')).toBeVisible();
+    await page.getByTestId('add-to-cart').click();
+    await page.goto(BASE + '#/cart');
+    const scrollWidth = await page.evaluate(() => document.body.scrollWidth);
+    expect(scrollWidth).toBeLessThanOrEqual(375);
+  });
 });

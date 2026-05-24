@@ -316,7 +316,7 @@ async function pageCart() {
       <div class="page-head"><p class="tiny">Your selection</p><h1>Shopping Cart</h1></div>
       ${c.items.length === 0
         ? `<div class="empty" data-testid="cart-empty"><h3>Your cart is empty</h3><p>Discover the collection.</p><a class="btn btn--ghost btn--sm" href="#/" style="margin-top:16px">Browse the shop</a></div>`
-        : `<div style="display:grid;grid-template-columns:1fr 360px;gap:48px;align-items:start" class="cart-layout">
+        : `<div class="cart-layout">
             <div data-testid="cart-lines">
               ${c.items.map(line => `
                 <div class="cart-line" data-testid="cart-line" data-product-id="${line.productId}">
@@ -353,7 +353,7 @@ async function pageCheckout() {
   app.innerHTML = `
     <section class="section reveal">
       <div class="page-head"><p class="tiny">Final details</p><h1>Checkout</h1></div>
-      <div style="display:grid;grid-template-columns:1fr 360px;gap:48px;align-items:start" class="cart-layout">
+      <div class="cart-layout">
         <form class="form" data-testid="checkout-form" style="max-width:none">
           <div id="checkout-alert"></div>
           <h3 style="margin-bottom:18px">Shipping</h3>
