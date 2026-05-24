@@ -46,10 +46,10 @@ function renderHeader() {
   header.innerHTML = `
     <div class="container">
       <div class="brand" data-testid="brand">MAISON<small>MAISON DE LUXE</small></div>
-      <button class="nav-toggle" data-testid="nav-toggle" aria-expanded="false" aria-label="Open navigation">
+      <button class="nav-toggle" data-testid="nav-toggle" aria-controls="primary-nav" aria-expanded="false" aria-label="Open navigation">
         <span></span><span></span><span></span>
       </button>
-      <nav class="nav" data-testid="nav-mobile-menu" aria-label="Primary">
+      <nav class="nav" id="primary-nav" data-testid="nav-mobile-menu" aria-label="Primary">
         <a href="#/" data-testid="nav-shop">Shop</a>
         ${u && u.role === 'seller' ? `<a href="#/seller" data-testid="nav-seller">Atelier</a>` : ''}
         ${u && u.role === 'buyer' ? `<a href="#/orders" data-testid="nav-orders" class="hide-sm">Orders</a>` : ''}
