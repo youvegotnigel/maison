@@ -5,11 +5,11 @@
   "description": "Maison luxury e-commerce demo — AUT for Playwright (UI/API/Accessibility/Security)",
   "type": "module",
   "engines": {
-    "node": ">=22.5.0"
+    "node": ">=24.0.0"
   },
   "scripts": {
     "postinstall": "cd server && npm install",
-    "start": "node --experimental-sqlite server/src/index.js",
+    "start": "node server/src/index.js",
     "test:smoke": "node verify.mjs",
     "test": "playwright test",
     "test:ui": "playwright test --ui",
