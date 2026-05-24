@@ -27,6 +27,27 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
+      # ── Phase 1: deploy ──────────────────────────────────────────────────────
+
+      - name: Start app
+        run: npm start &
+
+      - name: Wait for app to be ready
+        run: |
+          echo "Waiting for http://localhost:4000/api/v1/health ..."
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:4000/api/v1/health > /dev/null; then
+              echo "App is up (attempt $i)"
+              exit 0
+            fi
+            echo "  attempt $i/30 — retrying in 1s"
+            sleep 1
+          done
+          echo "App never came up after 30s"
+          exit 1
+
+      # ── Phase 2: test ────────────────────────────────────────────────────────
+
       - name: Run Playwright tests
         run: npm test
 
@@ -46,3 +67,9 @@ jobs:
           path: test-results/
           retention-days: 30
           if-no-files-found: ignore
+
+      # ── Phase 3: shutdown ────────────────────────────────────────────────────
+
+      - name: Stop app
+        if: always()
+        run: pkill -f "server/src/index.js" || true
