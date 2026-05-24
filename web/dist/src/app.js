@@ -112,10 +112,10 @@ async function pageShop() {
       <div class="hero" style="padding-top:40px">
         <p class="eyebrow">The Maison Collection</p>
         <h1>Quiet luxury, <em>considered</em> craft.</h1>
-        <p>A curated atelier of leather, timepieces, and rare materials — each piece numbered, each detail deliberate.</p>
+        <p>A curated atelier of leather, timepieces, and rare materials. Each piece numbered, each detail deliberate.</p>
       </div>
       <div class="hairline"></div>
-      <form class="toolbar" data-testid="catalogue-toolbar" onsubmit="return false">
+      <form class="toolbar" data-testid="catalogue-toolbar">
         <input type="search" data-testid="search-input" placeholder="Search the collection…" value="${esc(params.q || '')}" aria-label="Search products" />
         <select data-testid="filter-category" aria-label="Filter by category">
           <option value="">All categories</option>
@@ -220,7 +220,7 @@ async function pageLogin() {
   app.innerHTML = `
     <section class="section reveal">
       <div class="page-head"><p class="tiny">Welcome back</p><h1>Sign In</h1></div>
-      <form class="form" data-testid="login-form" onsubmit="return false">
+      <form class="form" data-testid="login-form">
         <div id="login-alert"></div>
         <div class="field">
           <label for="login-email">Email</label>
@@ -240,6 +240,7 @@ async function pageLogin() {
       </form>
     </section>`;
   const form = app.querySelector('[data-testid="login-form"]');
+  form.addEventListener('submit', e => e.preventDefault());
   form.querySelector('[data-testid="login-submit"]').onclick = async () => {
     const email = form.querySelector('[data-testid="login-email"]').value.trim();
     const password = form.querySelector('[data-testid="login-password"]').value;
@@ -263,7 +264,7 @@ async function pageRegister() {
   app.innerHTML = `
     <section class="section reveal">
       <div class="page-head"><p class="tiny">Join the Maison</p><h1>Create Account</h1></div>
-      <form class="form" data-testid="register-form" onsubmit="return false">
+      <form class="form" data-testid="register-form">
         <div id="register-alert"></div>
         <div class="field">
           <label>I want to</label>
@@ -281,6 +282,7 @@ async function pageRegister() {
       </form>
     </section>`;
   const form = app.querySelector('[data-testid="register-form"]');
+  form.addEventListener('submit', e => e.preventDefault());
   const bBuyer = form.querySelector('[data-testid="role-buyer"]');
   const bSeller = form.querySelector('[data-testid="role-seller"]');
   const setRole = (r) => { role = r; bBuyer.setAttribute('aria-pressed', r==='buyer'); bSeller.setAttribute('aria-pressed', r==='seller'); };
@@ -352,7 +354,7 @@ async function pageCheckout() {
     <section class="section reveal">
       <div class="page-head"><p class="tiny">Final details</p><h1>Checkout</h1></div>
       <div style="display:grid;grid-template-columns:1fr 360px;gap:48px;align-items:start" class="cart-layout">
-        <form class="form" data-testid="checkout-form" style="max-width:none" onsubmit="return false">
+        <form class="form" data-testid="checkout-form" style="max-width:none">
           <div id="checkout-alert"></div>
           <h3 style="margin-bottom:18px">Shipping</h3>
           <div class="field"><label for="ship-name">Full name</label><input id="ship-name" data-testid="ship-name" value="${esc(state.user.name)}" required /></div>
@@ -373,6 +375,7 @@ async function pageCheckout() {
         </aside>
       </div>
     </section>`;
+  app.querySelector('[data-testid="checkout-form"]').addEventListener('submit', e => e.preventDefault());
   app.querySelector('[data-testid="place-order"]').onclick = async (e) => {
     const btn = e.currentTarget; btn.disabled = true;
     const alert = document.getElementById('checkout-alert'); alert.innerHTML = '';
@@ -446,7 +449,7 @@ async function pageSeller() {
       <div class="dash-grid">
         <div>
           <h3 style="margin-bottom:18px">New Listing</h3>
-          <form class="form" data-testid="new-product-form" style="max-width:none" onsubmit="return false">
+          <form class="form" data-testid="new-product-form" style="max-width:none">
             <div id="seller-alert"></div>
             <div class="field"><label for="np-name">Name</label><input id="np-name" data-testid="np-name" required /></div>
             <div class="field"><label for="np-desc">Description</label><textarea id="np-desc" data-testid="np-description"></textarea></div>
@@ -465,6 +468,7 @@ async function pageSeller() {
       </div>
     </section>`;
 
+  app.querySelector('[data-testid="new-product-form"]').addEventListener('submit', e => e.preventDefault());
   app.querySelector('[data-testid="np-submit"]').onclick = async () => {
     const alert = document.getElementById('seller-alert'); alert.innerHTML = '';
     const priceCents = Math.round(parseFloat(app.querySelector('[data-testid="np-price"]').value || '0') * 100);
