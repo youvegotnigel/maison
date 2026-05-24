@@ -113,6 +113,41 @@ const SEED_PRODUCTS = [
     desc: 'Unstructured single-breasted blazer in washed Normandy linen, horn buttons.' },
   { name: 'Celeste Pearl Drop Earrings', category: 'Jewellery', price: 320000, stock: 5, hue: '#34303a',
     desc: 'South Sea pearls set in brushed white gold with a pavé diamond cap.' },
+  // Bags
+  { name: 'Stone Calf Bucket Bag', category: 'Bags', price: 195000, stock: 7, hue: '#a89e90',
+    desc: 'Softly structured bucket bag in stone-grey vegetable-tanned calf leather, brass clip closure.' },
+  { name: 'Ivory Croc Clutch', category: 'Bags', price: 340000, stock: 5, hue: '#e4dcd0',
+    desc: 'Crocodile-embossed ivory leather clutch with a gilt push-lock fastening and chain strap.' },
+  // Watches
+  { name: 'Silver Moon Watch', category: 'Watches', price: 890000, stock: 3, hue: '#7a7a80',
+    desc: 'Swiss-made moonphase dress watch, sterling silver dial, sapphire crystal, mesh bracelet.' },
+  { name: 'Bronze Field Watch', category: 'Watches', price: 560000, stock: 6, hue: '#6b4c2a',
+    desc: 'Patinated bronze case, matte khaki dial, tritium lume indices, canvas strap. Water-resistant to 100m.' },
+  // Accessories
+  { name: 'Alpaca Cable Gloves', category: 'Accessories', price: 72000, stock: 14, hue: '#4a3d2e',
+    desc: 'Hand-knitted royal alpaca gloves in a classic cable pattern. Cashmere-lined for extra warmth.' },
+  { name: 'Navy Silk Pocket Square', category: 'Accessories', price: 18000, stock: 30, hue: '#1a2a4a',
+    desc: 'Hand-rolled navy silk pocket square with a tonal paisley jacquard weave. Made in Como.' },
+  // Fragrance
+  { name: 'Cedar Amber Parfum', category: 'Fragrance', price: 145000, stock: 12, hue: '#3a2c1a',
+    desc: 'Warm cedar, labdanum and dried amber resin in an oak-capped flacon. 75ml, parfum concentration.' },
+  { name: 'White Rose Cologne', category: 'Fragrance', price: 98000, stock: 18, hue: '#e8e4de',
+    desc: 'Fresh Bulgarian rose, bergamot and sandalwood. Light summer cologne in a frosted glass bottle. 100ml.' },
+  // Footwear
+  { name: 'Tan Grain Loafer', category: 'Footwear', price: 165000, stock: 9, hue: '#8a5c2a',
+    desc: 'Full-grain tan leather penny loafer, leather-lined, leather sole with brass penny keeper.' },
+  { name: 'Moss Suede Mule', category: 'Footwear', price: 118000, stock: 6, hue: '#3a4a2c',
+    desc: 'Open-back mule in moss-green split suede, block heel, padded leather footbed.' },
+  // Apparel
+  { name: 'Navy Roll Neck', category: 'Apparel', price: 185000, stock: 9, hue: '#1a2a3a',
+    desc: 'Two-ply Scottish cashmere roll-neck sweater in deep navy. Ribbed cuffs and hem.' },
+  { name: 'Stone Wool Trench Coat', category: 'Apparel', price: 420000, stock: 4, hue: '#b0aa9a',
+    desc: 'Double-breasted trench coat in pure wool gabardine, storm flap, D-ring belt, horn buttons.' },
+  // Jewellery
+  { name: 'Gold Signet Ring', category: 'Jewellery', price: 185000, stock: 7, hue: '#b89830',
+    desc: 'Solid 18k yellow gold oval signet ring, hand-engraved crest, comfort-fit band.' },
+  { name: 'Pearl Cuff Bracelet', category: 'Jewellery', price: 240000, stock: 5, hue: '#dedad4',
+    desc: 'Freshwater pearl strand set in an open sterling silver cuff, rhodium-plated finish.' },
 ];
 
 export function seed() {
@@ -139,7 +174,7 @@ export function seed() {
   );
 
   SEED_PRODUCTS.forEach((p, i) => {
-    const owner = i >= 6 ? seller2 : seller1; // products 1-6 -> seller1, 7-8 -> seller2
+    const owner = i >= 11 ? seller2 : seller1; // products 1-11 -> seller1, 12+ -> seller2
     const pid = insProduct.run(owner, p.name, p.desc, p.category, p.price, p.stock).lastInsertRowid;
     insImage.run(pid, placeholderImage(p.name, p.hue), 0);
     // Give two products a seeded discount so the catalogue shows badges out of the box.
