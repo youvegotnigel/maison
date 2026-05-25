@@ -52,4 +52,34 @@ test.describe('Security · authorization', () => {
     expect(headers['x-content-type-options']).toBe('nosniff');
     expect(headers['x-frame-options']).toBe('DENY');
   });
+
+  test('invalid gender value is rejected — 400 INVALID_GENDER', async ({ request }) => {
+    const res = await request.post(`${API}/auth/register`, {
+      data: {
+        firstName: 'Sophie',
+        lastName: 'Laurent',
+        email: 'sophie.sec@test.maison',
+        gender: 'attack-vector',
+        password: 'Password123!',
+        role: 'buyer',
+      },
+    });
+    expect(res.status()).toBe(400);
+    expect((await res.json()).error.code).toBe('INVALID_GENDER');
+  });
+
+  test('phone number exceeding 30 characters is rejected — 400 INVALID_PHONE', async ({ request }) => {
+    const res = await request.post(`${API}/auth/register`, {
+      data: {
+        firstName: 'Sophie',
+        lastName: 'Laurent',
+        email: 'sophie.sec2@test.maison',
+        phone: '1'.repeat(31),
+        password: 'Password123!',
+        role: 'buyer',
+      },
+    });
+    expect(res.status()).toBe(400);
+    expect((await res.json()).error.code).toBe('INVALID_PHONE');
+  });
 });
