@@ -1,49 +1,62 @@
 import { api, money } from './api.js';
-
 // ============================================================
 //  Maison SPA — vanilla JS, hash-routed.
 //  Automation-first: every interactive element carries a
 //  stable data-testid. App state is also mirrored on
 //  window.__MAISON__ for test introspection.
 // ============================================================
-
 const state = {
-  user: null,
-  cart: { items: [], count: 0, subtotalCents: 0 },
-  categories: [],
+    user: null,
+    cart: { items: [], count: 0, subtotalCents: 0 },
+    categories: [],
 };
 window.__MAISON__ = state;
-
 const app = document.getElementById('app');
-const el = (html) => { const t = document.createElement('template'); t.innerHTML = html.trim(); return t.content.firstElementChild; };
-const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
-
+const el = (html) => {
+    const t = document.createElement('template');
+    t.innerHTML = html.trim();
+    return t.content.firstElementChild;
+};
+const escMap = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => escMap[c]);
 // ---------- Toast / alert ----------
 function flash(message, type = 'success') {
-  const host = document.getElementById('flash');
-  host.innerHTML = `<div class="alert alert--${type}" role="status" data-testid="flash-${type}">${esc(message)}</div>`;
-  setTimeout(() => { if (host.firstChild) host.innerHTML = ''; }, 4000);
+    const host = document.getElementById('flash');
+    host.innerHTML = `<div class="alert alert--${type}" role="status" data-testid="flash-${type}">${esc(message)}</div>`;
+    setTimeout(() => { if (host.firstChild)
+        host.innerHTML = ''; }, 4000);
 }
-
 // ---------- Session ----------
 async function refreshSession() {
-  try { const r = await api.me(); state.user = r.user; }
-  catch { state.user = null; }
+    try {
+        const r = await api.me();
+        state.user = r.user;
+    }
+    catch {
+        state.user = null;
+    }
 }
 async function refreshCart() {
-  if (!state.user || state.user.role !== 'buyer') { state.cart = { items: [], count: 0, subtotalCents: 0 }; renderHeader(); return; }
-  try { const r = await api.getCart(); state.cart = r.cart; } catch { /* ignore */ }
-  renderHeader();
+    if (!state.user || state.user.role !== 'buyer') {
+        state.cart = { items: [], count: 0, subtotalCents: 0 };
+        renderHeader();
+        return;
+    }
+    try {
+        const r = await api.getCart();
+        state.cart = r.cart;
+    }
+    catch { /* ignore */ }
+    renderHeader();
 }
-
 // ============================================================
 //  Header
 // ============================================================
 function renderHeader() {
-  const header = document.getElementById('masthead');
-  const u = state.user;
-  const cartCount = state.cart.count || 0;
-  header.innerHTML = `
+    const header = document.getElementById('masthead');
+    const u = state.user;
+    const cartCount = state.cart.count || 0;
+    header.innerHTML = `
     <div class="container">
       <div class="brand" data-testid="brand">MAISON<small>MAISON DE LUXE</small></div>
       <button class="nav-toggle" data-testid="nav-toggle" aria-controls="primary-nav" aria-expanded="false" aria-label="Open navigation">
@@ -58,75 +71,71 @@ function renderHeader() {
             Cart <span class="cart-count" data-testid="cart-count">${cartCount}</span>
           </a>` : ''}
         ${u
-          ? `<span class="tiny" data-testid="current-user" data-role="${esc(u.role)}">${esc(u.name)}</span>
+        ? `<span class="tiny" data-testid="current-user" data-role="${esc(u.role)}">${esc(u.name)}</span>
              <a href="#" data-testid="logout-link">Logout</a>`
-          : `<a href="#/login" data-testid="nav-login">Sign In</a>`}
+        : `<a href="#/login" data-testid="nav-login">Sign In</a>`}
       </nav>
     </div>`;
-  header.querySelector('[data-testid="brand"]').onclick = () => { location.hash = '#/'; };
-
-  const toggle = header.querySelector('[data-testid="nav-toggle"]');
-  const nav = header.querySelector('[data-testid="nav-mobile-menu"]');
-
-  function closeNav() {
-    nav.classList.remove('nav--open');
-    toggle.setAttribute('aria-expanded', 'false');
-    toggle.setAttribute('aria-label', 'Open navigation');
-  }
-
-  toggle.onclick = () => {
-    const isOpen = nav.classList.toggle('nav--open');
-    toggle.setAttribute('aria-expanded', String(isOpen));
-    toggle.setAttribute('aria-label', isOpen ? 'Close navigation' : 'Open navigation');
-  };
-
-  // No signal needed — header.innerHTML teardown removes these nodes (and their listeners) on next render.
-  nav.querySelectorAll('a').forEach(link => {
-    link.addEventListener('click', closeNav);
-  });
-
-  if (window.__navAbort) window.__navAbort.abort();
-  window.__navAbort = new AbortController();
-  const { signal } = window.__navAbort;
-
-  document.addEventListener('click', (e) => {
-    if (nav.classList.contains('nav--open') && !nav.contains(e.target) && !toggle.contains(e.target)) closeNav();
-  }, { signal });
-
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && nav.classList.contains('nav--open')) closeNav();
-  }, { signal });
-
-  const logoutLink = header.querySelector('[data-testid="logout-link"]');
-  if (logoutLink) logoutLink.onclick = (e) => { e.preventDefault(); window.__logout(); };
+    header.querySelector('[data-testid="brand"]').onclick = () => { location.hash = '#/'; };
+    const toggle = header.querySelector('[data-testid="nav-toggle"]');
+    const nav = header.querySelector('[data-testid="nav-mobile-menu"]');
+    function closeNav() {
+        nav.classList.remove('nav--open');
+        toggle.setAttribute('aria-expanded', 'false');
+        toggle.setAttribute('aria-label', 'Open navigation');
+    }
+    toggle.onclick = () => {
+        const isOpen = nav.classList.toggle('nav--open');
+        toggle.setAttribute('aria-expanded', String(isOpen));
+        toggle.setAttribute('aria-label', isOpen ? 'Close navigation' : 'Open navigation');
+    };
+    nav.querySelectorAll('a').forEach(link => {
+        link.addEventListener('click', closeNav);
+    });
+    if (window.__navAbort)
+        window.__navAbort.abort();
+    window.__navAbort = new AbortController();
+    const { signal } = window.__navAbort;
+    document.addEventListener('click', (e) => {
+        if (nav.classList.contains('nav--open') && !nav.contains(e.target) && !toggle.contains(e.target))
+            closeNav();
+    }, { signal });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && nav.classList.contains('nav--open'))
+            closeNav();
+    }, { signal });
+    const logoutLink = header.querySelector('[data-testid="logout-link"]');
+    if (logoutLink)
+        logoutLink.onclick = (e) => { e.preventDefault(); window.__logout(); };
 }
-
 window.__logout = async () => {
-  try { await api.logout(); } catch {}
-  state.user = null;
-  state.cart = { items: [], count: 0, subtotalCents: 0 };
-  renderHeader();
-  flash('You have been signed out.');
-  if (location.hash !== '#/') {
-    location.hash = '#/';
-  } else {
-    router();
-  }
+    try {
+        await api.logout();
+    }
+    catch { /* ignore */ }
+    state.user = null;
+    state.cart = { items: [], count: 0, subtotalCents: 0 };
+    renderHeader();
+    flash('You have been signed out.');
+    if (location.hash !== '#/') {
+        location.hash = '#/';
+    }
+    else {
+        router();
+    }
 };
-
 // ============================================================
 //  Pages
 // ============================================================
 function priceBlock(p) {
-  if (p.onSale) {
-    return `<span class="price-now" data-testid="price">${money(p.effectiveCents)}</span>
+    if (p.onSale) {
+        return `<span class="price-now" data-testid="price">${money(p.effectiveCents)}</span>
             <span class="price-was" data-testid="price-was">${money(p.priceCents)}</span>`;
-  }
-  return `<span class="price-now" data-testid="price">${money(p.priceCents)}</span>`;
+    }
+    return `<span class="price-now" data-testid="price">${money(p.priceCents)}</span>`;
 }
-
 function productCard(p) {
-  return `
+    return `
     <article class="card reveal" data-testid="product-card" data-product-id="${p.id}" data-name="${esc(p.name)}">
       <a href="#/product/${p.id}" class="card__media" aria-label="${esc(p.name)}">
         <img src="${p.image}" alt="${esc(p.name)}" loading="lazy" />
@@ -140,10 +149,9 @@ function productCard(p) {
       </div>
     </article>`;
 }
-
 async function pageShop() {
-  const params = parseQuery();
-  app.innerHTML = `
+    const params = parseQuery();
+    app.innerHTML = `
     <section class="section reveal">
       <div class="hero" style="padding-top:40px">
         <p class="eyebrow">The Maison Collection</p>
@@ -155,58 +163,64 @@ async function pageShop() {
         <input type="search" data-testid="search-input" placeholder="Search the collection…" value="${esc(params.q || '')}" aria-label="Search products" />
         <select data-testid="filter-category" aria-label="Filter by category">
           <option value="">All categories</option>
-          ${state.categories.map(c => `<option value="${esc(c)}" ${params.category===c?'selected':''}>${esc(c)}</option>`).join('')}
+          ${state.categories.map(c => `<option value="${esc(c)}" ${params.category === c ? 'selected' : ''}>${esc(c)}</option>`).join('')}
         </select>
         <select data-testid="sort-select" aria-label="Sort products">
           <option value="">Newest</option>
-          <option value="price_asc" ${params.sort==='price_asc'?'selected':''}>Price: Low to High</option>
-          <option value="price_desc" ${params.sort==='price_desc'?'selected':''}>Price: High to Low</option>
-          <option value="name" ${params.sort==='name'?'selected':''}>Name</option>
+          <option value="price_asc" ${params.sort === 'price_asc' ? 'selected' : ''}>Price: Low to High</option>
+          <option value="price_desc" ${params.sort === 'price_desc' ? 'selected' : ''}>Price: High to Low</option>
+          <option value="name" ${params.sort === 'name' ? 'selected' : ''}>Name</option>
         </select>
         <button class="btn btn--sm" data-testid="search-submit" type="button">Apply</button>
       </form>
       <div id="catalogue" class="grid" data-testid="catalogue" aria-live="polite"></div>
     </section>`;
-
-  const search = app.querySelector('[data-testid="search-input"]');
-  const cat = app.querySelector('[data-testid="filter-category"]');
-  const sort = app.querySelector('[data-testid="sort-select"]');
-  const apply = () => {
-    const q = new URLSearchParams();
-    if (search.value) q.set('q', search.value);
-    if (cat.value) q.set('category', cat.value);
-    if (sort.value) q.set('sort', sort.value);
-    location.hash = '#/?' + q.toString();
-  };
-  app.querySelector('[data-testid="search-submit"]').onclick = apply;
-  search.addEventListener('keydown', e => { if (e.key === 'Enter') apply(); });
-  cat.onchange = apply; sort.onchange = apply;
-
-  const grid = document.getElementById('catalogue');
-  grid.innerHTML = `<p class="muted" data-testid="loading">Loading the collection…</p>`;
-  try {
-    const r = await api.products({ q: params.q, category: params.category, sort: params.sort });
-    if (!r.products.length) {
-      grid.innerHTML = `<div class="empty" data-testid="no-results"><h3>Nothing found</h3><p>Try a different search or category.</p></div>`;
-      return;
+    const search = app.querySelector('[data-testid="search-input"]');
+    const cat = app.querySelector('[data-testid="filter-category"]');
+    const sort = app.querySelector('[data-testid="sort-select"]');
+    const apply = () => {
+        const q = new URLSearchParams();
+        if (search.value)
+            q.set('q', search.value);
+        if (cat.value)
+            q.set('category', cat.value);
+        if (sort.value)
+            q.set('sort', sort.value);
+        location.hash = '#/?' + q.toString();
+    };
+    app.querySelector('[data-testid="search-submit"]').onclick = apply;
+    search.addEventListener('keydown', e => { if (e.key === 'Enter')
+        apply(); });
+    cat.onchange = apply;
+    sort.onchange = apply;
+    const grid = document.getElementById('catalogue');
+    grid.innerHTML = `<p class="muted" data-testid="loading">Loading the collection…</p>`;
+    try {
+        const r = await api.products({ q: params.q, category: params.category, sort: params.sort });
+        if (!r.products.length) {
+            grid.innerHTML = `<div class="empty" data-testid="no-results"><h3>Nothing found</h3><p>Try a different search or category.</p></div>`;
+            return;
+        }
+        grid.innerHTML = r.products.map(productCard).join('');
+        grid.style.animationDelay = '0';
     }
-    grid.innerHTML = r.products.map(productCard).join('');
-    grid.style.animationDelay = '0';
-  } catch (e) {
-    grid.innerHTML = `<div class="empty" data-testid="error"><h3>Unable to load</h3><p>${esc(e.message)}</p></div>`;
-  }
+    catch (e) {
+        grid.innerHTML = `<div class="empty" data-testid="error"><h3>Unable to load</h3><p>${esc(e.message)}</p></div>`;
+    }
 }
-
 async function pageProduct(id) {
-  app.innerHTML = `<section class="section"><p class="muted" data-testid="loading">Loading…</p></section>`;
-  let p;
-  try { const r = await api.product(id); p = r.product; }
-  catch (e) {
-    app.innerHTML = `<section class="section"><div class="empty" data-testid="error"><h3>Not found</h3><p>${esc(e.message)}</p><a class="btn btn--ghost btn--sm" href="#/">Back to shop</a></div></section>`;
-    return;
-  }
-  const isBuyer = state.user && state.user.role === 'buyer';
-  app.innerHTML = `
+    app.innerHTML = `<section class="section"><p class="muted" data-testid="loading">Loading…</p></section>`;
+    let p;
+    try {
+        const r = await api.product(id);
+        p = r.product;
+    }
+    catch (e) {
+        app.innerHTML = `<section class="section"><div class="empty" data-testid="error"><h3>Not found</h3><p>${esc(e.message)}</p><a class="btn btn--ghost btn--sm" href="#/">Back to shop</a></div></section>`;
+        return;
+    }
+    const isBuyer = state.user && state.user.role === 'buyer';
+    app.innerHTML = `
     <section class="section reveal" data-testid="product-detail" data-product-id="${p.id}">
       <a href="#/" class="tiny" data-testid="back-link">&larr; Back to collection</a>
       <div class="pdp" style="margin-top:24px">
@@ -226,34 +240,45 @@ async function pageProduct(id) {
                 <button type="button" data-testid="qty-incr" aria-label="Increase quantity">+</button>
               </div>` : ''}
             ${p.inStock
-              ? `<button class="btn btn--solid" data-testid="add-to-cart">Add to Cart</button>`
-              : `<button class="btn" disabled data-testid="add-to-cart-disabled">Sold Out</button>`}
+        ? `<button class="btn btn--solid" data-testid="add-to-cart">Add to Cart</button>`
+        : `<button class="btn" disabled data-testid="add-to-cart-disabled">Sold Out</button>`}
           </div>
           ${!isBuyer ? `<p class="tiny" data-testid="buyer-hint" style="margin-top:18px">Sign in as a buyer to purchase.</p>` : ''}
         </div>
       </div>
     </section>`;
-
-  if (p.inStock) {
-    const input = app.querySelector('[data-testid="qty-input"]');
-    app.querySelector('[data-testid="qty-decr"]').onclick = () => { input.value = Math.max(1, (+input.value || 1) - 1); };
-    app.querySelector('[data-testid="qty-incr"]').onclick = () => { input.value = Math.min(p.stock, (+input.value || 1) + 1); };
-    app.querySelector('[data-testid="add-to-cart"]').onclick = async (e) => {
-      if (!isBuyer) { flash('Please sign in as a buyer to add items.', 'error'); location.hash = '#/login'; return; }
-      const btn = e.currentTarget; btn.disabled = true;
-      try {
-        await api.addToCart(p.id, +input.value || 1);
-        await refreshCart();
-        flash(`${p.name} added to your cart.`);
-      } catch (err) {
-        flash(err.message, 'error');
-      } finally { btn.disabled = false; }
-    };
-  }
+    if (p.inStock) {
+        const input = app.querySelector('[data-testid="qty-input"]');
+        app.querySelector('[data-testid="qty-decr"]').onclick = () => {
+            input.value = String(Math.max(1, (+input.value || 1) - 1));
+        };
+        app.querySelector('[data-testid="qty-incr"]').onclick = () => {
+            input.value = String(Math.min(p.stock, (+input.value || 1) + 1));
+        };
+        app.querySelector('[data-testid="add-to-cart"]').onclick = async (e) => {
+            if (!isBuyer) {
+                flash('Please sign in as a buyer to add items.', 'error');
+                location.hash = '#/login';
+                return;
+            }
+            const btn = e.currentTarget;
+            btn.disabled = true;
+            try {
+                await api.addToCart(p.id, +input.value || 1);
+                await refreshCart();
+                flash(`${p.name} added to your cart.`);
+            }
+            catch (err) {
+                flash(err.message, 'error');
+            }
+            finally {
+                btn.disabled = false;
+            }
+        };
+    }
 }
-
 async function pageLogin() {
-  app.innerHTML = `
+    app.innerHTML = `
     <section class="section reveal">
       <div class="page-head"><p class="tiny">Welcome back</p><h1>Sign In</h1></div>
       <form class="form" data-testid="login-form">
@@ -275,29 +300,29 @@ async function pageLogin() {
         </p>
       </form>
     </section>`;
-  const form = app.querySelector('[data-testid="login-form"]');
-  form.addEventListener('submit', e => e.preventDefault());
-  form.querySelector('[data-testid="login-submit"]').onclick = async () => {
-    const email = form.querySelector('[data-testid="login-email"]').value.trim();
-    const password = form.querySelector('[data-testid="login-password"]').value;
-    const alert = document.getElementById('login-alert');
-    alert.innerHTML = '';
-    try {
-      const r = await api.login({ email, password });
-      state.user = r.user;
-      renderHeader();
-      await refreshCart();
-      flash(`Welcome, ${r.user.name}.`);
-      location.hash = r.user.role === 'seller' ? '#/seller' : '#/';
-    } catch (e) {
-      alert.innerHTML = `<div class="alert alert--error" data-testid="login-error" role="alert">${esc(e.message)}</div>`;
-    }
-  };
+    const form = app.querySelector('[data-testid="login-form"]');
+    form.addEventListener('submit', e => e.preventDefault());
+    form.querySelector('[data-testid="login-submit"]').onclick = async () => {
+        const email = form.querySelector('[data-testid="login-email"]').value.trim();
+        const password = form.querySelector('[data-testid="login-password"]').value;
+        const alert = document.getElementById('login-alert');
+        alert.innerHTML = '';
+        try {
+            const r = await api.login({ email, password });
+            state.user = r.user;
+            renderHeader();
+            await refreshCart();
+            flash(`Welcome, ${r.user.name}.`);
+            location.hash = r.user.role === 'seller' ? '#/seller' : '#/';
+        }
+        catch (e) {
+            alert.innerHTML = `<div class="alert alert--error" data-testid="login-error" role="alert">${esc(e.message)}</div>`;
+        }
+    };
 }
-
 async function pageRegister() {
-  let role = 'buyer';
-  app.innerHTML = `
+    let role = 'buyer';
+    app.innerHTML = `
     <section class="section reveal">
       <div class="page-head"><p class="tiny">Join the Maison</p><h1>Create Account</h1></div>
       <form class="form" data-testid="register-form">
@@ -317,37 +342,44 @@ async function pageRegister() {
         <p class="muted" style="margin-top:20px;font-size:0.88rem">Already have an account? <a href="#/login" data-testid="goto-login" style="color:var(--gold)">Sign in</a></p>
       </form>
     </section>`;
-  const form = app.querySelector('[data-testid="register-form"]');
-  form.addEventListener('submit', e => e.preventDefault());
-  const bBuyer = form.querySelector('[data-testid="role-buyer"]');
-  const bSeller = form.querySelector('[data-testid="role-seller"]');
-  const setRole = (r) => { role = r; bBuyer.setAttribute('aria-pressed', r==='buyer'); bSeller.setAttribute('aria-pressed', r==='seller'); };
-  bBuyer.onclick = () => setRole('buyer');
-  bSeller.onclick = () => setRole('seller');
-  form.querySelector('[data-testid="register-submit"]').onclick = async () => {
-    const name = form.querySelector('[data-testid="register-name"]').value.trim();
-    const email = form.querySelector('[data-testid="register-email"]').value.trim();
-    const password = form.querySelector('[data-testid="register-password"]').value;
-    const alert = document.getElementById('register-alert');
-    alert.innerHTML = '';
-    try {
-      const r = await api.register({ name, email, password, role });
-      state.user = r.user;
-      renderHeader();
-      await refreshCart();
-      flash(`Welcome to Maison, ${r.user.name}.`);
-      location.hash = r.user.role === 'seller' ? '#/seller' : '#/';
-    } catch (e) {
-      alert.innerHTML = `<div class="alert alert--error" data-testid="register-error" role="alert">${esc(e.message)}</div>`;
-    }
-  };
+    const form = app.querySelector('[data-testid="register-form"]');
+    form.addEventListener('submit', e => e.preventDefault());
+    const bBuyer = form.querySelector('[data-testid="role-buyer"]');
+    const bSeller = form.querySelector('[data-testid="role-seller"]');
+    const setRole = (r) => {
+        role = r;
+        bBuyer.setAttribute('aria-pressed', String(r === 'buyer'));
+        bSeller.setAttribute('aria-pressed', String(r === 'seller'));
+    };
+    bBuyer.onclick = () => setRole('buyer');
+    bSeller.onclick = () => setRole('seller');
+    form.querySelector('[data-testid="register-submit"]').onclick = async () => {
+        const name = form.querySelector('[data-testid="register-name"]').value.trim();
+        const email = form.querySelector('[data-testid="register-email"]').value.trim();
+        const password = form.querySelector('[data-testid="register-password"]').value;
+        const alert = document.getElementById('register-alert');
+        alert.innerHTML = '';
+        try {
+            const r = await api.register({ name, email, password, role });
+            state.user = r.user;
+            renderHeader();
+            await refreshCart();
+            flash(`Welcome to Maison, ${r.user.name}.`);
+            location.hash = r.user.role === 'seller' ? '#/seller' : '#/';
+        }
+        catch (e) {
+            alert.innerHTML = `<div class="alert alert--error" data-testid="register-error" role="alert">${esc(e.message)}</div>`;
+        }
+    };
 }
-
 async function pageCart() {
-  if (!state.user || state.user.role !== 'buyer') { location.hash = '#/login'; return; }
-  await refreshCart();
-  const c = state.cart;
-  app.innerHTML = `
+    if (!state.user || state.user.role !== 'buyer') {
+        location.hash = '#/login';
+        return;
+    }
+    await refreshCart();
+    const c = state.cart;
+    app.innerHTML = `
     <section class="section reveal">
       <div class="page-head"><p class="tiny">Your selection</p><h1>Shopping Cart</h1></div>
       ${c.items.length === 0
@@ -372,21 +404,26 @@ async function pageCart() {
             </aside>
           </div>`}
     </section>`;
-  if (c.items.length) {
-    app.querySelectorAll('[data-testid="remove-item"]').forEach(btn => {
-      btn.onclick = async () => { await api.removeCartItem(+btn.dataset.itemId); await refreshCart(); pageCart(); };
-    });
-    app.querySelector('[data-testid="clear-cart"]').onclick = async () => { await api.clearCart(); await refreshCart(); pageCart(); flash('Cart emptied.'); };
-    app.querySelector('[data-testid="checkout-button"]').onclick = () => { location.hash = '#/checkout'; };
-  }
+    if (c.items.length) {
+        app.querySelectorAll('[data-testid="remove-item"]').forEach(btn => {
+            btn.onclick = async () => { await api.removeCartItem(+(btn.dataset.itemId ?? '0')); await refreshCart(); pageCart(); };
+        });
+        app.querySelector('[data-testid="clear-cart"]').onclick = async () => { await api.clearCart(); await refreshCart(); pageCart(); flash('Cart emptied.'); };
+        app.querySelector('[data-testid="checkout-button"]').onclick = () => { location.hash = '#/checkout'; };
+    }
 }
-
 async function pageCheckout() {
-  if (!state.user || state.user.role !== 'buyer') { location.hash = '#/login'; return; }
-  await refreshCart();
-  if (!state.cart.items.length) { location.hash = '#/cart'; return; }
-  const c = state.cart;
-  app.innerHTML = `
+    if (!state.user || state.user.role !== 'buyer') {
+        location.hash = '#/login';
+        return;
+    }
+    await refreshCart();
+    if (!state.cart.items.length) {
+        location.hash = '#/cart';
+        return;
+    }
+    const c = state.cart;
+    app.innerHTML = `
     <section class="section reveal">
       <div class="page-head"><p class="tiny">Final details</p><h1>Checkout</h1></div>
       <div class="cart-layout">
@@ -411,37 +448,45 @@ async function pageCheckout() {
         </aside>
       </div>
     </section>`;
-  app.querySelector('[data-testid="checkout-form"]').addEventListener('submit', e => e.preventDefault());
-  app.querySelector('[data-testid="place-order"]').onclick = async (e) => {
-    const btn = e.currentTarget; btn.disabled = true;
-    const alert = document.getElementById('checkout-alert'); alert.innerHTML = '';
-    const shipping = {
-      name: app.querySelector('[data-testid="ship-name"]').value.trim(),
-      address: app.querySelector('[data-testid="ship-address"]').value.trim(),
-      city: app.querySelector('[data-testid="ship-city"]').value.trim(),
-      postalCode: app.querySelector('[data-testid="ship-postal"]').value.trim(),
+    app.querySelector('[data-testid="checkout-form"]').addEventListener('submit', e => e.preventDefault());
+    app.querySelector('[data-testid="place-order"]').onclick = async (e) => {
+        const btn = e.currentTarget;
+        btn.disabled = true;
+        const alert = document.getElementById('checkout-alert');
+        alert.innerHTML = '';
+        const shipping = {
+            name: app.querySelector('[data-testid="ship-name"]').value.trim(),
+            address: app.querySelector('[data-testid="ship-address"]').value.trim(),
+            city: app.querySelector('[data-testid="ship-city"]').value.trim(),
+            postalCode: app.querySelector('[data-testid="ship-postal"]').value.trim(),
+        };
+        try {
+            const r = await api.checkout({ shipping, payment: { method: 'mock-card', token: 'demo' } });
+            await refreshCart();
+            sessionStorage.setItem('lastOrder', JSON.stringify(r.order));
+            location.hash = '#/confirmation/' + r.order.reference;
+        }
+        catch (err) {
+            alert.innerHTML = `<div class="alert alert--error" data-testid="checkout-error" role="alert">${esc(err.message)}</div>`;
+            btn.disabled = false;
+        }
     };
-    try {
-      const r = await api.checkout({ shipping, payment: { method: 'mock-card', token: 'demo' } });
-      await refreshCart();
-      sessionStorage.setItem('lastOrder', JSON.stringify(r.order));
-      location.hash = '#/confirmation/' + r.order.reference;
-    } catch (err) {
-      alert.innerHTML = `<div class="alert alert--error" data-testid="checkout-error" role="alert">${esc(err.message)}</div>`;
-      btn.disabled = false;
-    }
-  };
 }
-
 async function pageConfirmation(ref) {
-  let order;
-  try { const r = await api.order(ref); order = r.order; }
-  catch {
-    const cached = sessionStorage.getItem('lastOrder');
-    order = cached ? JSON.parse(cached) : null;
-  }
-  if (!order) { app.innerHTML = `<section class="section"><div class="empty"><h3>Order not found</h3></div></section>`; return; }
-  app.innerHTML = `
+    let order;
+    try {
+        const r = await api.order(ref);
+        order = r.order;
+    }
+    catch {
+        const cached = sessionStorage.getItem('lastOrder');
+        order = cached ? JSON.parse(cached) : null;
+    }
+    if (!order) {
+        app.innerHTML = `<section class="section"><div class="empty"><h3>Order not found</h3></div></section>`;
+        return;
+    }
+    app.innerHTML = `
     <section class="section reveal" data-testid="order-confirmation">
       <div class="empty" style="padding-top:40px">
         <p class="tiny" style="color:var(--gold)">Thank you</p>
@@ -457,12 +502,14 @@ async function pageConfirmation(ref) {
       </div>
     </section>`;
 }
-
 async function pageOrders() {
-  if (!state.user || state.user.role !== 'buyer') { location.hash = '#/login'; return; }
-  app.innerHTML = `<section class="section"><p class="muted" data-testid="loading">Loading orders…</p></section>`;
-  const r = await api.orders();
-  app.innerHTML = `
+    if (!state.user || state.user.role !== 'buyer') {
+        location.hash = '#/login';
+        return;
+    }
+    app.innerHTML = `<section class="section"><p class="muted" data-testid="loading">Loading orders…</p></section>`;
+    const r = await api.orders();
+    app.innerHTML = `
     <section class="section reveal">
       <div class="page-head"><p class="tiny">History</p><h1>My Orders</h1></div>
       ${r.orders.length === 0
@@ -475,11 +522,13 @@ async function pageOrders() {
             </div>`).join('')}</div>`}
     </section>`;
 }
-
 // ---------- Seller dashboard ----------
 async function pageSeller() {
-  if (!state.user || state.user.role !== 'seller') { location.hash = '#/login'; return; }
-  app.innerHTML = `
+    if (!state.user || state.user.role !== 'seller') {
+        location.hash = '#/login';
+        return;
+    }
+    app.innerHTML = `
     <section class="section reveal">
       <div class="page-head"><p class="tiny">Your Atelier</p><h1>Seller Dashboard</h1></div>
       <div class="dash-grid">
@@ -503,37 +552,40 @@ async function pageSeller() {
         </div>
       </div>
     </section>`;
-
-  app.querySelector('[data-testid="new-product-form"]').addEventListener('submit', e => e.preventDefault());
-  app.querySelector('[data-testid="np-submit"]').onclick = async () => {
-    const alert = document.getElementById('seller-alert'); alert.innerHTML = '';
-    const priceCents = Math.round(parseFloat(app.querySelector('[data-testid="np-price"]').value || '0') * 100);
-    const payload = {
-      name: app.querySelector('[data-testid="np-name"]').value.trim(),
-      description: app.querySelector('[data-testid="np-description"]').value.trim(),
-      category: app.querySelector('[data-testid="np-category"]').value.trim() || 'Atelier',
-      priceCents,
-      stock: parseInt(app.querySelector('[data-testid="np-stock"]').value || '0', 10),
+    app.querySelector('[data-testid="new-product-form"]').addEventListener('submit', e => e.preventDefault());
+    app.querySelector('[data-testid="np-submit"]').onclick = async () => {
+        const alert = document.getElementById('seller-alert');
+        alert.innerHTML = '';
+        const priceCents = Math.round(parseFloat(app.querySelector('[data-testid="np-price"]').value || '0') * 100);
+        const payload = {
+            name: app.querySelector('[data-testid="np-name"]').value.trim(),
+            description: app.querySelector('[data-testid="np-description"]').value.trim(),
+            category: app.querySelector('[data-testid="np-category"]').value.trim() || 'Atelier',
+            priceCents,
+            stock: parseInt(app.querySelector('[data-testid="np-stock"]').value || '0', 10),
+        };
+        try {
+            await api.createProduct(payload);
+            flash('Listing published.');
+            app.querySelector('[data-testid="new-product-form"]').reset();
+            loadMyListings();
+        }
+        catch (e) {
+            alert.innerHTML = `<div class="alert alert--error" data-testid="seller-error" role="alert">${esc(e.message)}</div>`;
+        }
     };
-    try {
-      await api.createProduct(payload);
-      flash('Listing published.');
-      app.querySelector('[data-testid="new-product-form"]').reset();
-      loadMyListings();
-    } catch (e) {
-      alert.innerHTML = `<div class="alert alert--error" data-testid="seller-error" role="alert">${esc(e.message)}</div>`;
-    }
-  };
-
-  loadMyListings();
+    loadMyListings();
 }
-
 async function loadMyListings() {
-  const host = document.getElementById('my-listings');
-  if (!host) return;
-  const r = await api.myProducts();
-  if (!r.products.length) { host.innerHTML = `<p class="muted" data-testid="no-listings">No listings yet.</p>`; return; }
-  host.innerHTML = r.products.map(p => `
+    const host = document.getElementById('my-listings');
+    if (!host)
+        return;
+    const r = await api.myProducts();
+    if (!r.products.length) {
+        host.innerHTML = `<p class="muted" data-testid="no-listings">No listings yet.</p>`;
+        return;
+    }
+    host.innerHTML = r.products.map(p => `
     <div class="listing" data-testid="listing-row" data-product-id="${p.id}">
       <img src="${p.image}" alt="${esc(p.name)}" />
       <div>
@@ -546,45 +598,58 @@ async function loadMyListings() {
         <button class="btn btn--ghost btn--sm" data-testid="edit-stock" data-id="${p.id}" data-stock="${p.stock}">Stock</button>
       </div>
     </div>`).join('');
-
-  host.querySelectorAll('[data-testid="edit-price"]').forEach(b => b.onclick = () => openPriceModal(+b.dataset.id, +b.dataset.price));
-  host.querySelectorAll('[data-testid="edit-discount"]').forEach(b => b.onclick = () => openDiscountModal(+b.dataset.id));
-  host.querySelectorAll('[data-testid="edit-stock"]').forEach(b => b.onclick = () => openStockModal(+b.dataset.id, +b.dataset.stock));
+    host.querySelectorAll('[data-testid="edit-price"]').forEach(b => b.onclick = () => openPriceModal(+(b.dataset.id ?? '0'), +(b.dataset.price ?? '0')));
+    host.querySelectorAll('[data-testid="edit-discount"]').forEach(b => b.onclick = () => openDiscountModal(+(b.dataset.id ?? '0')));
+    host.querySelectorAll('[data-testid="edit-stock"]').forEach(b => b.onclick = () => openStockModal(+(b.dataset.id ?? '0'), +(b.dataset.stock ?? '0')));
 }
-
 // ---------- Seller modals ----------
 function showModal(inner) {
-  const backdrop = el(`<div class="modal-backdrop" data-testid="modal"><div class="modal" role="dialog" aria-modal="true">${inner}</div></div>`);
-  backdrop.addEventListener('click', e => { if (e.target === backdrop) backdrop.remove(); });
-  document.body.appendChild(backdrop);
-  return backdrop;
+    const backdrop = el(`<div class="modal-backdrop" data-testid="modal"><div class="modal" role="dialog" aria-modal="true">${inner}</div></div>`);
+    backdrop.addEventListener('click', e => { if (e.target === backdrop)
+        backdrop.remove(); });
+    document.body.appendChild(backdrop);
+    return backdrop;
 }
 function openPriceModal(id, currentCents) {
-  const m = showModal(`
+    const m = showModal(`
     <h3>Update Price</h3><p class="muted" style="margin-bottom:18px">Set a new price for this piece.</p>
-    <div class="field"><label for="mp">Price (USD)</label><input id="mp" type="number" step="0.01" min="0" data-testid="modal-price" value="${(currentCents/100).toFixed(2)}" /></div>
+    <div class="field"><label for="mp">Price (USD)</label><input id="mp" type="number" step="0.01" min="0" data-testid="modal-price" value="${(currentCents / 100).toFixed(2)}" /></div>
     <div class="row"><button class="btn btn--solid" data-testid="modal-price-save">Save</button><button class="btn btn--ghost" data-testid="modal-cancel">Cancel</button></div>`);
-  m.querySelector('[data-testid="modal-cancel"]').onclick = () => m.remove();
-  m.querySelector('[data-testid="modal-price-save"]').onclick = async () => {
-    const priceCents = Math.round(parseFloat(m.querySelector('[data-testid="modal-price"]').value || '0') * 100);
-    try { await api.updateProduct(id, { priceCents }); m.remove(); flash('Price updated.'); loadMyListings(); }
-    catch (e) { flash(e.message, 'error'); }
-  };
+    m.querySelector('[data-testid="modal-cancel"]').onclick = () => m.remove();
+    m.querySelector('[data-testid="modal-price-save"]').onclick = async () => {
+        const priceCents = Math.round(parseFloat(m.querySelector('[data-testid="modal-price"]').value || '0') * 100);
+        try {
+            await api.updateProduct(id, { priceCents });
+            m.remove();
+            flash('Price updated.');
+            loadMyListings();
+        }
+        catch (e) {
+            flash(e.message, 'error');
+        }
+    };
 }
 function openStockModal(id, currentStock) {
-  const m = showModal(`
+    const m = showModal(`
     <h3>Update Stock</h3><p class="muted" style="margin-bottom:18px">Adjust available inventory.</p>
     <div class="field"><label for="ms">Stock</label><input id="ms" type="number" min="0" data-testid="modal-stock" value="${currentStock}" /></div>
     <div class="row"><button class="btn btn--solid" data-testid="modal-stock-save">Save</button><button class="btn btn--ghost" data-testid="modal-cancel">Cancel</button></div>`);
-  m.querySelector('[data-testid="modal-cancel"]').onclick = () => m.remove();
-  m.querySelector('[data-testid="modal-stock-save"]').onclick = async () => {
-    const stock = parseInt(m.querySelector('[data-testid="modal-stock"]').value || '0', 10);
-    try { await api.updateProduct(id, { stock }); m.remove(); flash('Stock updated.'); loadMyListings(); }
-    catch (e) { flash(e.message, 'error'); }
-  };
+    m.querySelector('[data-testid="modal-cancel"]').onclick = () => m.remove();
+    m.querySelector('[data-testid="modal-stock-save"]').onclick = async () => {
+        const stock = parseInt(m.querySelector('[data-testid="modal-stock"]').value || '0', 10);
+        try {
+            await api.updateProduct(id, { stock });
+            m.remove();
+            flash('Stock updated.');
+            loadMyListings();
+        }
+        catch (e) {
+            flash(e.message, 'error');
+        }
+    };
 }
 function openDiscountModal(id) {
-  const m = showModal(`
+    const m = showModal(`
     <h3>Manage Discount</h3><p class="muted" style="margin-bottom:18px">Apply or remove a discount.</p>
     <div class="field"><label for="md-type">Type</label>
       <select id="md-type" data-testid="modal-discount-type"><option value="percentage">Percentage (%)</option><option value="fixed">Fixed amount (USD)</option></select></div>
@@ -594,64 +659,80 @@ function openDiscountModal(id) {
       <button class="btn btn--ghost" data-testid="modal-discount-remove">Remove</button>
       <button class="btn btn--ghost" data-testid="modal-cancel">Cancel</button>
     </div>`);
-  m.querySelector('[data-testid="modal-cancel"]').onclick = () => m.remove();
-  m.querySelector('[data-testid="modal-discount-save"]').onclick = async () => {
-    const type = m.querySelector('[data-testid="modal-discount-type"]').value;
-    let value = parseInt(m.querySelector('[data-testid="modal-discount-value"]').value || '0', 10);
-    if (type === 'fixed') value = Math.round(parseFloat(m.querySelector('[data-testid="modal-discount-value"]').value || '0') * 100);
-    try { await api.setDiscount(id, { type, value }); m.remove(); flash('Discount applied.'); loadMyListings(); }
-    catch (e) { flash(e.message, 'error'); }
-  };
-  m.querySelector('[data-testid="modal-discount-remove"]').onclick = async () => {
-    try { await api.removeDiscount(id); m.remove(); flash('Discount removed.'); loadMyListings(); }
-    catch (e) { flash(e.message, 'error'); }
-  };
+    m.querySelector('[data-testid="modal-cancel"]').onclick = () => m.remove();
+    m.querySelector('[data-testid="modal-discount-save"]').onclick = async () => {
+        const type = m.querySelector('[data-testid="modal-discount-type"]').value;
+        let value = parseInt(m.querySelector('[data-testid="modal-discount-value"]').value || '0', 10);
+        if (type === 'fixed')
+            value = Math.round(parseFloat(m.querySelector('[data-testid="modal-discount-value"]').value || '0') * 100);
+        try {
+            await api.setDiscount(id, { type, value });
+            m.remove();
+            flash('Discount applied.');
+            loadMyListings();
+        }
+        catch (e) {
+            flash(e.message, 'error');
+        }
+    };
+    m.querySelector('[data-testid="modal-discount-remove"]').onclick = async () => {
+        try {
+            await api.removeDiscount(id);
+            m.remove();
+            flash('Discount removed.');
+            loadMyListings();
+        }
+        catch (e) {
+            flash(e.message, 'error');
+        }
+    };
 }
-
 // ============================================================
 //  Router
 // ============================================================
 function parseQuery() {
-  const hash = location.hash.slice(1);
-  const qi = hash.indexOf('?');
-  if (qi === -1) return {};
-  return Object.fromEntries(new URLSearchParams(hash.slice(qi + 1)));
+    const hash = location.hash.slice(1);
+    const qi = hash.indexOf('?');
+    if (qi === -1)
+        return {};
+    return Object.fromEntries(new URLSearchParams(hash.slice(qi + 1)));
 }
-
 async function router() {
-  const raw = location.hash.slice(1) || '/';
-  const path = raw.split('?')[0];
-  const parts = path.split('/').filter(Boolean);
-  window.scrollTo(0, 0);
-
-  // highlight active nav
-  document.querySelectorAll('.nav a').forEach(a => a.classList.remove('active'));
-
-  if (parts.length === 0) return pageShop();
-  switch (parts[0]) {
-    case 'product': return pageProduct(parts[1]);
-    case 'login': return pageLogin();
-    case 'register': return pageRegister();
-    case 'cart': return pageCart();
-    case 'checkout': return pageCheckout();
-    case 'confirmation': return pageConfirmation(parts[1]);
-    case 'orders': return pageOrders();
-    case 'seller': return pageSeller();
-    default: return pageShop();
-  }
+    const raw = location.hash.slice(1) || '/';
+    const path = raw.split('?')[0];
+    const parts = path.split('/').filter(Boolean);
+    window.scrollTo(0, 0);
+    document.querySelectorAll('.nav a').forEach(a => a.classList.remove('active'));
+    if (parts.length === 0)
+        return pageShop();
+    switch (parts[0]) {
+        case 'product': return pageProduct(parts[1]);
+        case 'login': return pageLogin();
+        case 'register': return pageRegister();
+        case 'cart': return pageCart();
+        case 'checkout': return pageCheckout();
+        case 'confirmation': return pageConfirmation(parts[1]);
+        case 'orders': return pageOrders();
+        case 'seller': return pageSeller();
+        default: return pageShop();
+    }
 }
-
 // ============================================================
 //  Boot
 // ============================================================
 async function boot() {
-  renderHeader();
-  try { const r = await api.categories(); state.categories = r.categories; } catch {}
-  await refreshSession();
-  renderHeader();
-  await refreshCart();
-  window.addEventListener('hashchange', router);
-  await router();
-  document.body.setAttribute('data-app-ready', 'true'); // signal for automation
+    renderHeader();
+    try {
+        const r = await api.categories();
+        state.categories = r.categories;
+    }
+    catch { /* ignore */ }
+    await refreshSession();
+    renderHeader();
+    await refreshCart();
+    window.addEventListener('hashchange', router);
+    await router();
+    document.body.setAttribute('data-app-ready', 'true');
 }
 boot();
+//# sourceMappingURL=app.js.map
