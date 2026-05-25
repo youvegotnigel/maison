@@ -64,7 +64,7 @@ const errorHandler = (err, _req, res, _next) => {
     return fail(res, 500, 'INTERNAL', 'An unexpected error occurred.');
 };
 app.use(errorHandler);
-app.listen(PORT, () => {
+app.listen(PORT, '127.0.0.1', () => {
     console.log('\n  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!');
     console.log('  !!  MAISON VULN SERVER -- DO NOT USE IN PRODUCTION  !!');
     console.log('  !!  Intentional SQL injection: POST /api/v1/auth/login  !!');
