@@ -20,8 +20,17 @@ const cookieOpts = {
   maxAge: 2 * 60 * 60 * 1000,
 } as const;
 
-function publicUser(u: DbUser): { id: number; email: string; name: string; role: string } {
-  return { id: u.id, email: u.email, name: u.name, role: u.role };
+function publicUser(u: DbUser) {
+  return {
+    id: u.id,
+    email: u.email,
+    name: u.name,
+    role: u.role,
+    firstName: u.first_name ?? null,
+    lastName: u.last_name ?? null,
+    gender: u.gender ?? null,
+    phone: u.phone ?? null,
+  };
 }
 
 router.post('/register', (req, res) => {
