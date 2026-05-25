@@ -242,6 +242,42 @@ npm run test:smoke      # spins up the server, runs ~30 API/static/security asse
 
 ---
 
+## Vulnerable dev server (security scanner target)
+
+Branch `dev/vuln-scanner-target` ships a second server entry point with a **deliberate SQL injection** on `POST /auth/login`. Use it to validate that your scanner correctly detects the vulnerability — never run it in production or expose it to a network.
+
+```bash
+cd server && npm run start:vuln   # starts on http://127.0.0.1:4001
+```
+
+The server is identical to the production build except:
+- Bound to `127.0.0.1:4001` only (`PORT_VULN` env var, default `4001`)
+- `POST /auth/login` interpolates the `email` field directly into the SQL string instead of using a parameterized query
+- Rate limiter removed (scanners need unrestricted access)
+
+**Injection point:** `email` field of `POST http://localhost:4001/api/v1/auth/login`
+
+| Scanner | Command |
+|---------|---------|
+| sqlmap | `sqlmap -u http://localhost:4001/api/v1/auth/login --data='{"email":"*","password":"Password123!"}' --content-type=application/json --level=3` |
+| Burp / ZAP | Active scan `POST /api/v1/auth/login`, mark `email` as injection point |
+
+**Auth bypass payload** (error-based and boolean-based both work):
+```
+email: ' OR '1'='1' --
+password: Password123!
+```
+This exploits the injection to return the first seeded user (`seller@maison.test`) and bcrypt succeeds because all seed accounts share `Password123!` (also exposed by `GET /api/v1/seed-info`).
+
+Reset DB state between scanner runs:
+```bash
+curl -X POST http://localhost:4001/api/v1/_reset
+```
+
+All other routes on the vuln server (`/auth/register`, `/products`, `/cart`, `/orders`) are fully protected with parameterized queries.
+
+---
+
 ## Hosting a demo on AWS (Docker → ECR → App Runner)
 
 Follow these steps to get a public URL anyone can open in a browser, then shut it all down when you're done so you don't pay for anything you're not using.
@@ -400,6 +436,7 @@ An empty `ServiceSummaryList` means you're all clear and not being charged.
 | Variable               | Default                | Purpose                          |
 |------------------------|------------------------|----------------------------------|
 | `PORT`                 | `4000`                 | Server port                      |
+| `PORT_VULN`            | `4001`                 | Vulnerable dev server port (branch `dev/vuln-scanner-target`) |
 | `MAISON_JWT_SECRET`    | dev default            | JWT signing secret               |
 | `MAISON_DB_FILE`       | `:memory:`             | Set a path to persist the DB     |
 | `MAISON_ALLOW_RESET`   | enabled                | Set to `false` to disable `_reset` |
