@@ -35,3 +35,61 @@ test.describe('API · contract', () => {
     expect(prod.product.stock).toBe(6); // was 8
   });
 });
+
+test.describe('API · buyer registration', () => {
+  test('registers a new buyer with all profile fields', async ({ request }) => {
+    const res = await request.post(`${API}/auth/register`, {
+      data: {
+        firstName: 'Sophie',
+        lastName: 'Laurent',
+        email: 'sophie@test.maison',
+        gender: 'female',
+        phone: '+33 1 23 45 67 89',
+        password: 'Password123!',
+        role: 'buyer',
+      },
+    });
+    expect(res.status()).toBe(201);
+    const body = await res.json();
+    expect(body.user.firstName).toBe('Sophie');
+    expect(body.user.lastName).toBe('Laurent');
+    expect(body.user.name).toBe('Sophie Laurent');
+    expect(body.user.gender).toBe('female');
+    expect(body.user.phone).toBe('+33 1 23 45 67 89');
+    expect(body.user.role).toBe('buyer');
+  });
+
+  test('registers a new buyer with only required fields (optional fields null)', async ({ request }) => {
+    const res = await request.post(`${API}/auth/register`, {
+      data: {
+        firstName: 'Marc',
+        lastName: 'Dubois',
+        email: 'marc@test.maison',
+        password: 'Password123!',
+        role: 'buyer',
+      },
+    });
+    expect(res.status()).toBe(201);
+    const body = await res.json();
+    expect(body.user.firstName).toBe('Marc');
+    expect(body.user.lastName).toBe('Dubois');
+    expect(body.user.gender).toBeNull();
+    expect(body.user.phone).toBeNull();
+  });
+
+  test('rejects buyer registration missing firstName — 400 INVALID_FIRST_NAME', async ({ request }) => {
+    const res = await request.post(`${API}/auth/register`, {
+      data: { lastName: 'Laurent', email: 'x@test.maison', password: 'Password123!', role: 'buyer' },
+    });
+    expect(res.status()).toBe(400);
+    expect((await res.json()).error.code).toBe('INVALID_FIRST_NAME');
+  });
+
+  test('rejects buyer registration missing lastName — 400 INVALID_LAST_NAME', async ({ request }) => {
+    const res = await request.post(`${API}/auth/register`, {
+      data: { firstName: 'Sophie', email: 'x@test.maison', password: 'Password123!', role: 'buyer' },
+    });
+    expect(res.status()).toBe(400);
+    expect((await res.json()).error.code).toBe('INVALID_LAST_NAME');
+  });
+});
