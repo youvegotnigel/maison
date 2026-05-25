@@ -10,19 +10,27 @@
   },
   "scripts": {
     "postinstall": "cd server && npm install",
-    "start": "node server/src/index.js",
-    "test:smoke": "node verify.mjs",
-    "test": "playwright test",
-    "test:open": "playwright test --ui",
-    "test:debug": "playwright test --debug",
-    "test:ui": "playwright test tests/ui.spec.js",
-    "test:mobile": "playwright test tests/mobile.spec.js",
-    "test:api": "playwright test tests/api.spec.js",
-    "test:security": "playwright test tests/security.spec.js",
-    "test:a11y": "playwright test tests/a11y.spec.js"
+    "build:server": "npm run build --prefix server",
+    "build:web": "tsc -p web/tsconfig.json",
+    "build": "npm run build:server && npm run build:web",
+    "start": "npm run build:server && node server/dist/index.js",
+    "lint": "eslint .",
+    "typecheck": "tsc -p server/tsconfig.json --noEmit && tsc -p web/tsconfig.json --noEmit",
+    "test:smoke": "tsx verify.ts",
+    "test:ui": "playwright test tests/ui.spec.ts",
+    "test:mobile": "playwright test tests/mobile.spec.ts",
+    "test:api": "playwright test tests/api.spec.ts",
+    "test:security": "playwright test tests/security.spec.ts",
+    "test:a11y": "playwright test tests/a11y.spec.ts",
+    "test": "playwright test"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.11.3",
-    "@playwright/test": "^1.60.0"
+    "@eslint/js": "^9.39.4",
+    "@playwright/test": "^1.60.0",
+    "eslint": "^9.39.4",
+    "tsx": "^4.22.3",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.59.4"
   }
 }
