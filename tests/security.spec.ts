@@ -52,4 +52,60 @@ test.describe('Security · authorization', () => {
     expect(headers['x-content-type-options']).toBe('nosniff');
     expect(headers['x-frame-options']).toBe('DENY');
   });
+
+  test('invalid gender value is rejected — 400 INVALID_GENDER', async ({ request }) => {
+    const res = await request.post(`${API}/auth/register`, {
+      data: {
+        firstName: 'Sophie',
+        lastName: 'Laurent',
+        email: 'sophie.sec@test.maison',
+        gender: 'attack-vector',
+        password: 'Password123!',
+        role: 'buyer',
+        dateOfBirth: '1990-06-10',
+      },
+    });
+    expect(res.status()).toBe(400);
+    expect((await res.json()).error.code).toBe('INVALID_GENDER');
+  });
+
+  test('phone number exceeding 30 characters is rejected — 400 INVALID_PHONE', async ({ request }) => {
+    const res = await request.post(`${API}/auth/register`, {
+      data: {
+        firstName: 'Sophie',
+        lastName: 'Laurent',
+        email: 'sophie.sec2@test.maison',
+        phone: '1'.repeat(31),
+        password: 'Password123!',
+        role: 'buyer',
+        dateOfBirth: '1990-06-10',
+      },
+    });
+    expect(res.status()).toBe(400);
+    expect((await res.json()).error.code).toBe('INVALID_PHONE');
+  });
+
+  test('underage registration is rejected at API level — 400 UNDERAGE', async ({ request }) => {
+    const today = new Date();
+    const underage = new Date(today.getFullYear() - 16, today.getMonth(), today.getDate());
+    const res = await request.post(`${API}/auth/register`, {
+      data: {
+        name: 'Young Seller',
+        email: 'young.seller@test.maison',
+        password: 'Password123!',
+        role: 'seller',
+        dateOfBirth: underage.toISOString().slice(0, 10),
+      },
+    });
+    expect(res.status()).toBe(400);
+    expect((await res.json()).error.code).toBe('UNDERAGE');
+  });
+
+  test('missing dateOfBirth is rejected at API level — 400 MISSING_DOB', async ({ request }) => {
+    const res = await request.post(`${API}/auth/register`, {
+      data: { name: 'No DOB', email: 'nodob@test.maison', password: 'Password123!', role: 'seller' },
+    });
+    expect(res.status()).toBe(400);
+    expect((await res.json()).error.code).toBe('MISSING_DOB');
+  });
 });

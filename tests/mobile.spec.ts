@@ -102,3 +102,62 @@ test.describe('Mobile · responsive layout', () => {
     await expect(page.getByTestId('order-reference')).toContainText('ORD-');
   });
 });
+
+test.describe('Mobile · new buyer registration', () => {
+  test.use({ viewport: { width: 375, height: 812 } });
+
+  test('new buyer registers and completes purchase on mobile', async ({ page }) => {
+    await page.goto(BASE + '#/register');
+    await expect(page.locator('body')).toHaveAttribute('data-app-ready', 'true');
+
+    await page.getByTestId('register-first-name').fill('Sophie');
+    await page.getByTestId('register-last-name').fill('Laurent');
+    await page.getByTestId('register-email').fill('sophie.mobile@test.maison');
+    await page.getByTestId('register-password').fill('NewBuyer123!');
+    await page.getByTestId('register-confirm-password').fill('NewBuyer123!');
+
+    await page.getByTestId('dob-display').click();
+    await page.getByTestId('dob-year-select').selectOption('1992');
+    await page.getByTestId('dob-month-select').selectOption('8');
+    await page.getByTestId('dob-day-20').click();
+
+    await page.getByTestId('register-submit').click();
+
+    await expect(page.getByTestId('current-user')).toHaveAttribute('data-role', 'buyer');
+
+    // Add product to cart
+    await page.getByTestId('product-card').first().click();
+    await expect(page.getByTestId('product-detail')).toBeVisible();
+    await page.getByTestId('add-to-cart').click();
+    await expect(page.getByTestId('cart-count')).toHaveText('1');
+
+    // Navigate to cart via hamburger
+    await page.getByTestId('nav-toggle').click();
+    await page.getByTestId('nav-cart').click();
+    await page.getByTestId('checkout-button').click();
+
+    await page.getByTestId('ship-address').fill('15 Rue de la Paix');
+    await page.getByTestId('ship-city').fill('Paris');
+    await page.getByTestId('ship-postal').fill('75001');
+    await page.getByTestId('place-order').click();
+
+    await expect(page.getByTestId('order-confirmation')).toBeVisible();
+    await expect(page.getByTestId('order-reference')).toContainText('ORD-');
+  });
+
+  test('register page has no horizontal overflow on mobile', async ({ page }) => {
+    await page.goto(BASE + '#/register');
+    await expect(page.locator('body')).toHaveAttribute('data-app-ready', 'true');
+    const scrollWidth = await page.evaluate(() => document.body.scrollWidth);
+    expect(scrollWidth).toBeLessThanOrEqual(375);
+  });
+
+  test('DOB popup does not overflow the viewport when open', async ({ page }) => {
+    await page.goto(BASE + '#/register');
+    await expect(page.locator('body')).toHaveAttribute('data-app-ready', 'true');
+    await page.getByTestId('dob-display').click();
+    await expect(page.getByTestId('dob-picker')).toHaveAttribute('aria-hidden', 'false');
+    const popupWidth = await page.getByTestId('dob-picker').evaluate((el: HTMLElement) => el.getBoundingClientRect().width);
+    expect(popupWidth).toBeLessThanOrEqual(375);
+  });
+});

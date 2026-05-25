@@ -13,6 +13,21 @@ function validPassword(pw: unknown): boolean {
   return typeof pw === 'string' && pw.length >= 8 && /[A-Za-z]/.test(pw) && /\d/.test(pw);
 }
 
+function validDob(dob: unknown): boolean {
+  if (typeof dob !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(dob)) return false;
+  const [y, m, d] = dob.split('-').map(Number);
+  const date = new Date(y, m - 1, d);
+  return date.getFullYear() === y && date.getMonth() === m - 1 && date.getDate() === d;
+}
+
+function ageAtLeast18(dob: string): boolean {
+  const [y, m, d] = dob.split('-').map(Number);
+  const today = new Date();
+  let age = today.getFullYear() - y;
+  if (today.getMonth() + 1 < m || (today.getMonth() + 1 === m && today.getDate() < d)) age--;
+  return age >= 18;
+}
+
 const cookieOpts = {
   httpOnly: true,
   sameSite: 'lax',
@@ -20,35 +35,97 @@ const cookieOpts = {
   maxAge: 2 * 60 * 60 * 1000,
 } as const;
 
-function publicUser(u: DbUser): { id: number; email: string; name: string; role: string } {
-  return { id: u.id, email: u.email, name: u.name, role: u.role };
+function publicUser(u: DbUser) {
+  return {
+    id: u.id,
+    email: u.email,
+    name: u.name,
+    role: u.role,
+    firstName: u.first_name ?? null,
+    lastName: u.last_name ?? null,
+    gender: u.gender ?? null,
+    phone: u.phone ?? null,
+    dateOfBirth: u.date_of_birth,
+  };
 }
+
+const VALID_GENDERS = ['female', 'male', 'non-binary', 'prefer_not_to_say'] as const;
 
 router.post('/register', (req, res) => {
   const { email, password, name, role } = req.body || {};
+
   if (!email || !EMAIL_RE.test(email)) {
     return fail(res, 400, 'INVALID_EMAIL', 'Please provide a valid email address.');
   }
   if (!validPassword(password)) {
     return fail(res, 400, 'WEAK_PASSWORD', 'Password must be at least 8 characters and include a letter and a number.');
   }
-  if (!name || !String(name).trim()) {
-    return fail(res, 400, 'INVALID_NAME', 'Please provide your name.');
-  }
   if (role !== 'buyer' && role !== 'seller') {
     return fail(res, 400, 'INVALID_ROLE', "Role must be either 'buyer' or 'seller'.");
   }
+
+  const rawDob: string = String(req.body.dateOfBirth ?? '').trim();
+  if (!rawDob) {
+    return fail(res, 400, 'MISSING_DOB', 'Please provide your date of birth.');
+  }
+  if (!validDob(rawDob)) {
+    return fail(res, 400, 'INVALID_DOB', 'Date of birth must be a valid date in YYYY-MM-DD format.');
+  }
+  if (!ageAtLeast18(rawDob)) {
+    return fail(res, 400, 'UNDERAGE', 'You must be at least 18 years old to create an account.');
+  }
+  const dob = rawDob;
+
+  let insertName: string;
+  let firstName: string | null = null;
+  let lastName: string | null = null;
+  let gender: string | null = null;
+  let phone: string | null = null;
+
+  if (role === 'buyer') {
+    firstName = String(req.body.firstName ?? '').trim();
+    lastName = String(req.body.lastName ?? '').trim();
+    if (!firstName) return fail(res, 400, 'INVALID_FIRST_NAME', 'Please provide your first name.');
+    if (!lastName) return fail(res, 400, 'INVALID_LAST_NAME', 'Please provide your last name.');
+
+    const rawGender: string | undefined = req.body.gender;
+    if (rawGender != null && rawGender !== '') {
+      if (!(VALID_GENDERS as readonly string[]).includes(rawGender)) {
+        return fail(res, 400, 'INVALID_GENDER', 'Gender must be one of: female, male, non-binary, prefer_not_to_say.');
+      }
+      gender = rawGender;
+    }
+
+    const rawPhone: string | undefined = req.body.phone;
+    if (rawPhone != null && rawPhone !== '') {
+      if (String(rawPhone).length > 30) {
+        return fail(res, 400, 'INVALID_PHONE', 'Phone number must not exceed 30 characters.');
+      }
+      phone = String(rawPhone);
+    }
+
+    insertName = `${firstName} ${lastName}`;
+  } else {
+    if (!name || !String(name).trim()) {
+      return fail(res, 400, 'INVALID_NAME', 'Please provide your name.');
+    }
+    insertName = String(name).trim();
+  }
+
   const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email) as { id: number } | undefined;
   if (existing) {
     return fail(res, 409, 'EMAIL_TAKEN', 'An account with that email already exists.');
   }
+
   const hash = bcrypt.hashSync(password, 8);
   const id = db.prepare(
-    'INSERT INTO users (email, password_hash, name, role) VALUES (?, ?, ?, ?)'
-  ).run(email, hash, String(name).trim(), role).lastInsertRowid;
+    'INSERT INTO users (email, password_hash, name, role, first_name, last_name, gender, phone, date_of_birth) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+  ).run(email, hash, insertName, role, firstName, lastName, gender, phone, dob).lastInsertRowid;
+
   if (role === 'buyer') {
     db.prepare('INSERT INTO carts (buyer_id) VALUES (?)').run(id);
   }
+
   const user = db.prepare('SELECT * FROM users WHERE id = ?').get(id) as unknown as DbUser;
   const token = signToken(user);
   res.cookie('maison_token', token, cookieOpts);

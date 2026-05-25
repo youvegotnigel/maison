@@ -110,11 +110,11 @@ Only tag when there is something meaningful to version — don't tag every commi
 
 ### Demo accounts (password `Password123!`)
 
-| Email                 | Role   |
-|-----------------------|--------|
-| `buyer@maison.test`   | buyer  |
-| `seller@maison.test`  | seller |
-| `seller2@maison.test` | seller |
+| Email                 | Role   | Date of Birth |
+|-----------------------|--------|---------------|
+| `buyer@maison.test`   | buyer  | 1990-06-10    |
+| `seller@maison.test`  | seller | 1980-03-15    |
+| `seller2@maison.test` | seller | 1975-09-22    |
 
 ---
 
@@ -183,10 +183,10 @@ maison/
 | `GET  /health`                     | Public | Liveness check                           |
 | `GET  /seed-info`                  | Public | Demo accounts                            |
 | `POST /_reset`                     | Public | Rebuild seed data (test isolation)       |
-| `POST /auth/register`              | Public | Create account (`role: buyer\|seller`)   |
+| `POST /auth/register`              | Public | Create account (`role: buyer\|seller`, `dateOfBirth: YYYY-MM-DD` required, age ≥ 18) |
 | `POST /auth/login`                 | Public | Authenticate, issue JWT cookie           |
 | `POST /auth/logout`                | Any    | Clear session                            |
-| `GET  /auth/me`                    | Auth   | Current user                             |
+| `GET  /auth/me`                    | Auth   | Current user (includes `dateOfBirth`)    |
 | `GET  /products`                   | Public | Catalogue (`q, category, sort, minPrice, maxPrice`) |
 | `GET  /products/:id`               | Public | Single product                           |
 | `GET  /products/categories`        | Public | Distinct categories                      |
@@ -206,7 +206,8 @@ maison/
 
 **Error codes** include: `INVALID_EMAIL`, `WEAK_PASSWORD`, `INVALID_ROLE`, `EMAIL_TAKEN`,
 `INVALID_CREDENTIALS`, `UNAUTHENTICATED`, `FORBIDDEN_ROLE`, `NOT_OWNER`, `PRODUCT_NOT_FOUND`,
-`OUT_OF_STOCK`, `INSUFFICIENT_STOCK`, `INVALID_PRICE`, `INVALID_DISCOUNT_VALUE`, `EMPTY_CART`.
+`OUT_OF_STOCK`, `INSUFFICIENT_STOCK`, `INVALID_PRICE`, `INVALID_DISCOUNT_VALUE`, `EMPTY_CART`,
+`MISSING_DOB`, `INVALID_DOB`, `UNDERAGE`.
 
 Prices are integer **cents** everywhere to avoid floating-point drift.
 
