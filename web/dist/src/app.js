@@ -334,10 +334,57 @@ async function pageRegister() {
             <button type="button" data-testid="role-seller" data-role="seller" aria-pressed="false">Sell as Atelier</button>
           </div>
         </div>
-        <div class="field"><label for="reg-name">Full name</label><input id="reg-name" data-testid="register-name" required /></div>
-        <div class="field"><label for="reg-email">Email</label><input id="reg-email" type="email" data-testid="register-email" autocomplete="email" required /></div>
-        <div class="field"><label for="reg-password">Password</label><input id="reg-password" type="password" data-testid="register-password" autocomplete="new-password" required />
-          <p class="tiny" style="margin-top:6px">At least 8 characters, including a letter and a number.</p></div>
+        <div id="buyer-name-row">
+          <div class="row" style="gap:16px">
+            <div class="field" style="flex:1">
+              <label for="reg-first-name">First name</label>
+              <input id="reg-first-name" data-testid="register-first-name" autocomplete="given-name" />
+            </div>
+            <div class="field" style="flex:1">
+              <label for="reg-last-name">Last name</label>
+              <input id="reg-last-name" data-testid="register-last-name" autocomplete="family-name" />
+            </div>
+          </div>
+        </div>
+        <div id="seller-name-row" style="display:none">
+          <div class="field">
+            <label for="reg-name">Atelier name</label>
+            <input id="reg-name" data-testid="register-name" />
+          </div>
+        </div>
+        <div class="field">
+          <label for="reg-email">Email</label>
+          <input id="reg-email" type="email" data-testid="register-email" autocomplete="email" required />
+        </div>
+        <div id="buyer-extra-row">
+          <div class="row" style="gap:16px">
+            <div class="field" style="flex:1">
+              <label for="reg-gender">Gender <span class="tiny">(optional)</span></label>
+              <select id="reg-gender" data-testid="register-gender">
+                <option value="">— Select —</option>
+                <option value="female">Female</option>
+                <option value="male">Male</option>
+                <option value="non-binary">Non-binary</option>
+                <option value="prefer_not_to_say">Prefer not to say</option>
+              </select>
+            </div>
+            <div class="field" style="flex:1">
+              <label for="reg-phone">Phone <span class="tiny">(optional)</span></label>
+              <input id="reg-phone" type="tel" data-testid="register-phone" autocomplete="tel" />
+            </div>
+          </div>
+        </div>
+        <div class="row" style="gap:16px">
+          <div class="field" style="flex:1">
+            <label for="reg-password">Password</label>
+            <input id="reg-password" type="password" data-testid="register-password" autocomplete="new-password" />
+            <p class="tiny" style="margin-top:6px">At least 8 characters, including a letter and a number.</p>
+          </div>
+          <div class="field" style="flex:1" id="confirm-password-field">
+            <label for="reg-confirm-password">Confirm password</label>
+            <input id="reg-confirm-password" type="password" data-testid="register-confirm-password" autocomplete="new-password" />
+          </div>
+        </div>
         <button class="btn btn--solid btn--block" data-testid="register-submit" type="submit">Create Account</button>
         <p class="muted" style="margin-top:20px;font-size:0.88rem">Already have an account? <a href="#/login" data-testid="goto-login" style="color:var(--gold)">Sign in</a></p>
       </form>
@@ -346,21 +393,50 @@ async function pageRegister() {
     form.addEventListener('submit', e => e.preventDefault());
     const bBuyer = form.querySelector('[data-testid="role-buyer"]');
     const bSeller = form.querySelector('[data-testid="role-seller"]');
+    const buyerNameRow = form.querySelector('#buyer-name-row');
+    const sellerNameRow = form.querySelector('#seller-name-row');
+    const buyerExtraRow = form.querySelector('#buyer-extra-row');
+    const confirmField = form.querySelector('#confirm-password-field');
     const setRole = (r) => {
         role = r;
-        bBuyer.setAttribute('aria-pressed', String(r === 'buyer'));
-        bSeller.setAttribute('aria-pressed', String(r === 'seller'));
+        const isBuyer = r === 'buyer';
+        bBuyer.setAttribute('aria-pressed', String(isBuyer));
+        bSeller.setAttribute('aria-pressed', String(!isBuyer));
+        buyerNameRow.style.display = isBuyer ? '' : 'none';
+        sellerNameRow.style.display = isBuyer ? 'none' : '';
+        buyerExtraRow.style.display = isBuyer ? '' : 'none';
+        confirmField.style.display = isBuyer ? '' : 'none';
     };
     bBuyer.onclick = () => setRole('buyer');
     bSeller.onclick = () => setRole('seller');
     form.querySelector('[data-testid="register-submit"]').onclick = async () => {
-        const name = form.querySelector('[data-testid="register-name"]').value.trim();
         const email = form.querySelector('[data-testid="register-email"]').value.trim();
         const password = form.querySelector('[data-testid="register-password"]').value;
-        const alert = document.getElementById('register-alert');
-        alert.innerHTML = '';
+        const alertEl = document.getElementById('register-alert');
+        alertEl.innerHTML = '';
+        let payload;
+        if (role === 'buyer') {
+            const firstName = form.querySelector('[data-testid="register-first-name"]').value.trim();
+            const lastName = form.querySelector('[data-testid="register-last-name"]').value.trim();
+            const gender = form.querySelector('[data-testid="register-gender"]').value;
+            const phone = form.querySelector('[data-testid="register-phone"]').value.trim();
+            const confirmPassword = form.querySelector('[data-testid="register-confirm-password"]').value;
+            if (password !== confirmPassword) {
+                alertEl.innerHTML = `<div class="alert alert--error" data-testid="register-error" role="alert">Passwords do not match.</div>`;
+                return;
+            }
+            payload = { firstName, lastName, email, password, role };
+            if (gender)
+                payload.gender = gender;
+            if (phone)
+                payload.phone = phone;
+        }
+        else {
+            const name = form.querySelector('[data-testid="register-name"]').value.trim();
+            payload = { name, email, password, role };
+        }
         try {
-            const r = await api.register({ name, email, password, role });
+            const r = await api.register(payload);
             state.user = r.user;
             renderHeader();
             await refreshCart();
@@ -368,7 +444,7 @@ async function pageRegister() {
             location.hash = r.user.role === 'seller' ? '#/seller' : '#/';
         }
         catch (e) {
-            alert.innerHTML = `<div class="alert alert--error" data-testid="register-error" role="alert">${esc(e.message)}</div>`;
+            alertEl.innerHTML = `<div class="alert alert--error" data-testid="register-error" role="alert">${esc(e.message)}</div>`;
         }
     };
 }
