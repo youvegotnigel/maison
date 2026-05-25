@@ -2,7 +2,7 @@
   "compilerOptions": {
     "target": "ES2022",
     "module": "ES2022",
-    "moduleResolution": "Node",
+    "moduleResolution": "bundler",
     "lib": ["DOM", "ES2022", "DOM.Iterable"],
     "outDir": "./dist/src",
     "rootDir": "./src",
