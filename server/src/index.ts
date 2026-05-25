@@ -1,4 +1,5 @@
 import express from 'express';
+import type { Request, Response, NextFunction, ErrorRequestHandler } from 'express';
 import cookieParser from 'cookie-parser';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -45,8 +46,8 @@ app.use((req, res, next) => {
 });
 
 // ---- Lightweight rate limiter on auth endpoints (brute-force slowdown) ----
-const hits = new Map();
-function rateLimit(req, res, next) {
+const hits = new Map<string, { count: number; start: number }>();
+function rateLimit(req: Request, res: Response, next: NextFunction) {
   const key = req.ip + ':' + req.path;
   const now = Date.now();
   const windowMs = 60_000;
@@ -96,13 +97,15 @@ app.get('*', (_req, res) => {
 });
 
 // ---- Error handler with consistent envelope ----
-app.use((err, _req, res, _next) => {
-  if (err && err.type === 'entity.parse.failed') {
+const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => { // eslint-disable-line @typescript-eslint/no-unused-vars
+  const e = err as { type?: string } | null;
+  if (e && e.type === 'entity.parse.failed') {
     return fail(res, 400, 'INVALID_JSON', 'Request body is not valid JSON.');
   }
   console.error('[maison] unexpected error:', err);
   return fail(res, 500, 'INTERNAL', 'An unexpected error occurred.');
-});
+};
+app.use(errorHandler);
 
 app.listen(PORT, () => {
   console.log(`\n  MAISON running at ${ORIGIN}`);

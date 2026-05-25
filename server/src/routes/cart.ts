@@ -1,27 +1,39 @@
 import { Router } from 'express';
 import { db } from '../db.js';
-import { serializeProduct, effectivePrice } from '../pricing.js';
+import type { DbProduct, DbOrder } from '../db.js';
+import { serializeProduct } from '../pricing.js';
 import { fail, requireRole } from '../auth.js';
 
 const router = Router();
 
-function getCartId(buyerId) {
-  let cart = db.prepare('SELECT id FROM carts WHERE buyer_id = ?').get(buyerId);
+function getCartId(buyerId: number): number {
+  const cart = db.prepare('SELECT id FROM carts WHERE buyer_id = ?').get(buyerId) as unknown as { id: number } | undefined;
   if (!cart) {
     const id = db.prepare('INSERT INTO carts (buyer_id) VALUES (?)').run(buyerId).lastInsertRowid;
-    return id;
+    return Number(id);
   }
   return cart.id;
 }
 
-function buildCart(buyerId) {
+interface CartLine {
+  itemId: number;
+  productId: number;
+  name: string;
+  image: string | null;
+  unitCents: number;
+  quantity: number;
+  lineCents: number;
+  stock: number;
+}
+
+function buildCart(buyerId: number): { cartId: number; items: CartLine[]; subtotalCents: number; count: number } {
   const cartId = getCartId(buyerId);
   const items = db.prepare(
     'SELECT ci.id AS itemId, ci.quantity, p.id AS productId FROM cart_items ci JOIN products p ON p.id = ci.product_id WHERE ci.cart_id = ?'
-  ).all(cartId);
+  ).all(cartId) as unknown as Array<{ itemId: number; quantity: number; productId: number }>;
   let subtotal = 0;
-  const lines = items.map(it => {
-    const prow = db.prepare('SELECT * FROM products WHERE id = ?').get(it.productId);
+  const lines: CartLine[] = items.map(it => {
+    const prow = db.prepare('SELECT * FROM products WHERE id = ?').get(it.productId) as unknown as DbProduct;
     const product = serializeProduct(prow);
     const lineTotal = product.effectiveCents * it.quantity;
     subtotal += lineTotal;
@@ -43,13 +55,13 @@ function buildCart(buyerId) {
 router.use(requireRole('buyer'));
 
 router.get('/', (req, res) => {
-  res.json({ cart: buildCart(req.user.sub) });
+  res.json({ cart: buildCart(req.user!.sub) });
 });
 
 // Add or set quantity. Body: { productId, quantity }
 router.post('/items', (req, res) => {
   const { productId, quantity = 1 } = req.body || {};
-  const prow = db.prepare('SELECT * FROM products WHERE id = ?').get(Number(productId));
+  const prow = db.prepare('SELECT * FROM products WHERE id = ?').get(Number(productId)) as unknown as DbProduct | undefined;
   if (!prow) return fail(res, 404, 'PRODUCT_NOT_FOUND', 'That product does not exist.');
   if (!Number.isInteger(quantity) || quantity < 1) {
     return fail(res, 400, 'INVALID_QUANTITY', 'Quantity must be a positive integer.');
@@ -60,9 +72,9 @@ router.post('/items', (req, res) => {
   if (quantity > prow.stock) {
     return fail(res, 409, 'INSUFFICIENT_STOCK', `Only ${prow.stock} in stock.`);
   }
-  const cartId = getCartId(req.user.sub);
+  const cartId = getCartId(req.user!.sub);
   const existing = db.prepare('SELECT id FROM cart_items WHERE cart_id = ? AND product_id = ?')
-    .get(cartId, prow.id);
+    .get(cartId, prow.id) as unknown as { id: number } | undefined;
   if (existing) {
     db.prepare('UPDATE cart_items SET quantity = ? WHERE id = ?').run(quantity, existing.id);
   } else {
@@ -70,22 +82,22 @@ router.post('/items', (req, res) => {
       .run(cartId, prow.id, quantity);
   }
   db.prepare("UPDATE carts SET updated_at = datetime('now') WHERE id = ?").run(cartId);
-  res.status(201).json({ cart: buildCart(req.user.sub) });
+  res.status(201).json({ cart: buildCart(req.user!.sub) });
 });
 
 router.delete('/items/:itemId', (req, res) => {
-  const cartId = getCartId(req.user.sub);
+  const cartId = getCartId(req.user!.sub);
   const item = db.prepare('SELECT id FROM cart_items WHERE id = ? AND cart_id = ?')
-    .get(Number(req.params.itemId), cartId);
+    .get(Number(req.params.itemId), cartId) as unknown as { id: number } | undefined;
   if (!item) return fail(res, 404, 'ITEM_NOT_FOUND', 'That cart item does not exist.');
   db.prepare('DELETE FROM cart_items WHERE id = ?').run(item.id);
-  res.json({ cart: buildCart(req.user.sub) });
+  res.json({ cart: buildCart(req.user!.sub) });
 });
 
 router.delete('/', (req, res) => {
-  const cartId = getCartId(req.user.sub);
+  const cartId = getCartId(req.user!.sub);
   db.prepare('DELETE FROM cart_items WHERE cart_id = ?').run(cartId);
-  res.json({ cart: buildCart(req.user.sub) });
+  res.json({ cart: buildCart(req.user!.sub) });
 });
 
 export default router;
@@ -96,7 +108,7 @@ ordersRouter.use(requireRole('buyer'));
 
 ordersRouter.get('/', (req, res) => {
   const rows = db.prepare('SELECT * FROM orders WHERE buyer_id = ? ORDER BY created_at DESC, id DESC')
-    .all(req.user.sub);
+    .all(req.user!.sub) as unknown as DbOrder[];
   const orders = rows.map(o => ({
     id: o.id,
     reference: o.reference,
@@ -111,7 +123,7 @@ ordersRouter.get('/', (req, res) => {
 
 ordersRouter.get('/:reference', (req, res) => {
   const o = db.prepare('SELECT * FROM orders WHERE reference = ? AND buyer_id = ?')
-    .get(req.params.reference, req.user.sub);
+    .get(req.params.reference, req.user!.sub) as unknown as DbOrder | undefined;
   if (!o) return fail(res, 404, 'ORDER_NOT_FOUND', 'That order does not exist.');
   res.json({ order: {
     id: o.id, reference: o.reference, status: o.status, totalCents: o.total_cents,
@@ -130,13 +142,12 @@ ordersRouter.post('/', (req, res) => {
   if (!payment || payment.method !== 'mock-card') {
     return fail(res, 400, 'INVALID_PAYMENT', "Payment method must be 'mock-card' for this demo.");
   }
-  const cart = buildCart(req.user.sub);
+  const cart = buildCart(req.user!.sub);
   if (!cart.items.length) {
     return fail(res, 400, 'EMPTY_CART', 'Your cart is empty.');
   }
-  // Re-validate stock against the live DB before committing.
   for (const line of cart.items) {
-    const prow = db.prepare('SELECT stock FROM products WHERE id = ?').get(line.productId);
+    const prow = db.prepare('SELECT stock FROM products WHERE id = ?').get(line.productId) as unknown as { stock: number } | undefined;
     if (!prow || prow.stock < line.quantity) {
       return fail(res, 409, 'INSUFFICIENT_STOCK', `Not enough stock for "${line.name}".`);
     }
@@ -145,12 +156,11 @@ ordersRouter.post('/', (req, res) => {
   const reference = 'ORD-' + Date.now().toString(36).toUpperCase() + '-' +
     Math.floor(Math.random() * 1000).toString().padStart(3, '0');
 
-  // Transaction: create order, write items at server-recomputed prices, decrement stock, clear cart.
   try {
     db.exec('BEGIN');
     const orderId = db.prepare(
       'INSERT INTO orders (buyer_id, reference, status, total_cents, shipping_json) VALUES (?, ?, ?, ?, ?)'
-    ).run(req.user.sub, reference, 'confirmed', cart.subtotalCents, JSON.stringify(shipping)).lastInsertRowid;
+    ).run(req.user!.sub, reference, 'confirmed', cart.subtotalCents, JSON.stringify(shipping)).lastInsertRowid;
 
     const insItem = db.prepare(
       'INSERT INTO order_items (order_id, product_id, name, quantity, unit_price_cents) VALUES (?, ?, ?, ?, ?)'
@@ -170,8 +180,8 @@ ordersRouter.post('/', (req, res) => {
         shipping,
       },
     });
-  } catch (e) {
-    try { db.exec('ROLLBACK'); } catch {}
+  } catch {
+    try { db.exec('ROLLBACK'); } catch { /* ignore */ }
     return fail(res, 500, 'ORDER_FAILED', 'Could not place the order.');
   }
 });

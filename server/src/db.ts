@@ -1,6 +1,53 @@
 import { DatabaseSync } from 'node:sqlite';
 import bcrypt from 'bcryptjs';
 
+export interface DbUser {
+  id: number;
+  email: string;
+  password_hash: string;
+  name: string;
+  role: 'buyer' | 'seller';
+  created_at: string;
+}
+
+export interface DbProduct {
+  id: number;
+  seller_id: number;
+  name: string;
+  description: string;
+  category: string;
+  price_cents: number;
+  stock: number;
+  published: number;
+  created_at: string;
+}
+
+export interface DbCartItem {
+  id: number;
+  cart_id: number;
+  product_id: number;
+  quantity: number;
+}
+
+export interface DbOrder {
+  id: number;
+  buyer_id: number;
+  reference: string;
+  status: string;
+  total_cents: number;
+  shipping_json: string;
+  created_at: string;
+}
+
+export interface DbOrderItem {
+  id: number;
+  order_id: number;
+  product_id: number;
+  name: string;
+  quantity: number;
+  unit_price_cents: number;
+}
+
 // In-memory DB by default — fast, isolated, perfect for an AUT.
 // Set MAISON_DB_FILE to persist to disk if desired.
 const dbPath = process.env.MAISON_DB_FILE || ':memory:';
@@ -11,7 +58,7 @@ db.exec(`
   PRAGMA foreign_keys = ON;
 `);
 
-export function initSchema() {
+export function initSchema(): void {
   db.exec(`
     DROP TABLE IF EXISTS order_items;
     DROP TABLE IF EXISTS orders;
@@ -150,7 +197,7 @@ const SEED_PRODUCTS = [
     desc: 'Freshwater pearl strand set in an open sterling silver cuff, rhodium-plated finish.' },
 ];
 
-export function seed() {
+export function seed(): void {
   initSchema();
   const hash = bcrypt.hashSync(SEED_PASSWORD, 8);
 
@@ -158,8 +205,8 @@ export function seed() {
     'INSERT INTO users (email, password_hash, name, role) VALUES (?, ?, ?, ?)'
   );
   // Two known sellers + one known buyer for deterministic tests.
-  const seller1 = insUser.run('seller@maison.test', hash, 'Atelier Maison', 'seller').lastInsertRowid;
-  const seller2 = insUser.run('seller2@maison.test', hash, 'Maison Rive', 'seller').lastInsertRowid;
+  const seller1 = Number(insUser.run('seller@maison.test', hash, 'Atelier Maison', 'seller').lastInsertRowid);
+  const seller2 = Number(insUser.run('seller2@maison.test', hash, 'Maison Rive', 'seller').lastInsertRowid);
   insUser.run('buyer@maison.test', hash, 'Aurelie Dupont', 'buyer');
 
   const insProduct = db.prepare(
@@ -175,7 +222,7 @@ export function seed() {
 
   SEED_PRODUCTS.forEach((p, i) => {
     const owner = i >= 11 ? seller2 : seller1; // products 1-11 -> seller1, 12+ -> seller2
-    const pid = insProduct.run(owner, p.name, p.desc, p.category, p.price, p.stock).lastInsertRowid;
+    const pid = Number(insProduct.run(owner, p.name, p.desc, p.category, p.price, p.stock).lastInsertRowid);
     insImage.run(pid, placeholderImage(p.name, p.hue), 0);
     // Give two products a seeded discount so the catalogue shows badges out of the box.
     if (i === 0) insDiscount.run(pid, 'percentage', 15);
@@ -184,8 +231,9 @@ export function seed() {
 }
 
 // Inline SVG data-URI so the app needs zero external image hosting.
-export function placeholderImage(label, hue = '#1f1b18') {
-  const initials = label.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase();
+export function placeholderImage(label: string, hue = '#1f1b18'): string {
+  const initials = label.split(' ').slice(0, 2).map(w => w[0] ?? '').join('').toUpperCase();
+
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="800" viewBox="0 0 800 800">
     <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="${hue}"/><stop offset="1" stop-color="#0c0b0a"/>

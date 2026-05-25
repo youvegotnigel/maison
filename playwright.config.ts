@@ -1,4 +1,3 @@
-// @ts-check
 import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
@@ -15,7 +14,7 @@ export default defineConfig({
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
   ],
   webServer: {
-    command: 'npm start',
+    command: 'npm run build:server && node server/dist/index.js',
     url: 'http://localhost:4000',
     reuseExistingServer: true,
   },

@@ -2,12 +2,13 @@ import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import { db } from '../db.js';
 import { signToken, fail, requireAuth } from '../auth.js';
+import type { DbUser } from '../db.js';
 
 const router = Router();
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-function validPassword(pw) {
+function validPassword(pw: unknown): boolean {
   // At least 8 chars, one letter and one number.
   return typeof pw === 'string' && pw.length >= 8 && /[A-Za-z]/.test(pw) && /\d/.test(pw);
 }
@@ -17,9 +18,9 @@ const cookieOpts = {
   sameSite: 'lax',
   secure: false, // localhost demo over http
   maxAge: 2 * 60 * 60 * 1000,
-};
+} as const;
 
-function publicUser(u) {
+function publicUser(u: DbUser): { id: number; email: string; name: string; role: string } {
   return { id: u.id, email: u.email, name: u.name, role: u.role };
 }
 
@@ -37,7 +38,7 @@ router.post('/register', (req, res) => {
   if (role !== 'buyer' && role !== 'seller') {
     return fail(res, 400, 'INVALID_ROLE', "Role must be either 'buyer' or 'seller'.");
   }
-  const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
+  const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email) as { id: number } | undefined;
   if (existing) {
     return fail(res, 409, 'EMAIL_TAKEN', 'An account with that email already exists.');
   }
@@ -48,7 +49,7 @@ router.post('/register', (req, res) => {
   if (role === 'buyer') {
     db.prepare('INSERT INTO carts (buyer_id) VALUES (?)').run(id);
   }
-  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(id);
+  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(id) as unknown as DbUser;
   const token = signToken(user);
   res.cookie('maison_token', token, cookieOpts);
   return res.status(201).json({ token, user: publicUser(user) });
@@ -59,7 +60,7 @@ router.post('/login', (req, res) => {
   if (!email || !password) {
     return fail(res, 400, 'MISSING_CREDENTIALS', 'Email and password are required.');
   }
-  const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
+  const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email) as unknown as DbUser;
   if (!user || !bcrypt.compareSync(password, user.password_hash)) {
     return fail(res, 401, 'INVALID_CREDENTIALS', 'Email or password is incorrect.');
   }
@@ -74,7 +75,7 @@ router.post('/logout', (req, res) => {
 });
 
 router.get('/me', requireAuth, (req, res) => {
-  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.sub);
+  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user!.sub) as unknown as DbUser;
   if (!user) return fail(res, 404, 'NOT_FOUND', 'User not found.');
   return res.json({ user: publicUser(user) });
 });

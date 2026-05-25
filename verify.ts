@@ -7,60 +7,62 @@ import { setTimeout as sleep } from 'node:timers/promises';
 const BASE = 'http://localhost:4000';
 const API = BASE + '/api/v1';
 let pass = 0, fail = 0;
-const jar = {};
+const jar: { token?: string } = {};
 
-const srv = spawn('node', ['--experimental-sqlite', 'server/src/index.js'], {
+const srv = spawn('node', ['server/dist/index.js'], {
   cwd: process.cwd(),
   stdio: 'ignore',
   env: { ...process.env, PORT: '4000' },
 });
 
-function cleanup() { try { srv.kill('SIGKILL'); } catch {} }
+function cleanup(): void { try { srv.kill('SIGKILL'); } catch { /* ignore */ } }
 process.on('exit', cleanup);
 process.on('SIGINT', () => { cleanup(); process.exit(1); });
 
-function check(label, cond, detail = '') {
+function check(label: string, cond: boolean, detail = ''): void {
   if (cond) { pass++; console.log('  PASS  ' + label); }
   else { fail++; console.log('  FAIL  ' + label + (detail ? '  -> ' + detail : '')); }
 }
-function setCookies(res) {
+function setCookies(res: Response): void {
   const sc = res.headers.get('set-cookie');
   if (sc) { const m = sc.match(/maison_token=([^;]+)/); if (m) jar.token = m[1]; }
 }
-async function call(method, path, body, useAuth) {
-  const headers = { 'Content-Type': 'application/json' };
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function call(method: string, path: string, body?: unknown, useAuth?: boolean): Promise<{ status: number; json: any; headers: Headers }> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (useAuth && jar.token) headers['Cookie'] = 'maison_token=' + jar.token;
-  const res = await fetch(API + path, { method, headers, body: body ? JSON.stringify(body) : undefined });
+  const res = await fetch(API + path, { method, headers, body: body != null ? JSON.stringify(body) : undefined });
   setCookies(res);
-  let json = null; try { json = await res.json(); } catch {}
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let json: any = null; try { json = await res.json(); } catch { /* ignore */ }
   return { status: res.status, json, headers: res.headers };
 }
-const login = (email) => call('POST', '/auth/login', { email, password: 'Password123!' });
+const login = (email: string) => call('POST', '/auth/login', { email, password: 'Password123!' });
 
-async function waitForHealth() {
+async function waitForHealth(): Promise<boolean> {
   for (let i = 0; i < 50; i++) {
-    try { const r = await fetch(API + '/health'); if (r.ok) return true; } catch {}
+    try { const r = await fetch(API + '/health'); if (r.ok) return true; } catch { /* ignore */ }
     await sleep(300);
   }
   return false;
 }
 
-async function run() {
+async function run(): Promise<void> {
   const up = await waitForHealth();
   check('server boots & health responds', up);
   if (!up) { console.log('\n  server never came up\n'); return; }
 
   // ---- API: catalogue & pricing ----
   let r = await call('GET', '/products');
-  check('catalogue returns 8 products', r.json.count === 8, String(r.json.count));
-  const tote = r.json.products.find(p => p.name.includes('Noir'));
+  check('catalogue returns 22 products', r.json.count === 22, String(r.json.count));
+  const tote = r.json.products.find((p: { name: string }) => p.name.includes('Noir'));
   check('seeded 15% discount applied (242250)', tote && tote.effectiveCents === 242250, tote && String(tote.effectiveCents));
   check('product exposes onSale + discount object', tote && tote.onSale === true && tote.discount.type === 'percentage');
 
   r = await call('GET', '/products?q=watch');
-  check('search q=watch finds chronograph', r.json.products.some(p => p.name.includes('Chronograph')));
+  check('search q=watch finds chronograph', r.json.products.some((p: { name: string }) => p.name.includes('Chronograph')));
   r = await call('GET', '/products?category=Footwear');
-  check('category filter works', r.json.products.every(p => p.category === 'Footwear'));
+  check('category filter works', r.json.products.every((p: { category: string }) => p.category === 'Footwear'));
   r = await call('GET', '/products?sort=price_asc');
   check('sort price_asc ordered', r.json.products[0].priceCents <= r.json.products.at(-1).priceCents);
 
@@ -77,7 +79,7 @@ async function run() {
   r = await call('GET', '/products/1');
   check('stock decremented 8 -> 6', r.json.product.stock === 6, String(r.json.product && r.json.product.stock));
   r = await call('GET', '/orders', null, true);
-  check('order appears in history', r.json.orders.some(o => o.reference === ref));
+  check('order appears in history', r.json.orders.some((o: { reference: string }) => o.reference === ref));
   r = await call('GET', '/cart', null, true);
   check('cart cleared after checkout', r.json.cart.count === 0);
 
@@ -105,7 +107,7 @@ async function run() {
   r = await call('POST', '/products', { name: 'Test Piece', priceCents: 50000, stock: 3 }, true);
   check('seller creates listing 201', r.status === 201 && r.json.product.name === 'Test Piece');
   r = await call('GET', '/products/seller/mine', null, true);
-  check('seller sees own listings', r.json.products.some(p => p.name === 'Test Piece'));
+  check('seller sees own listings', r.json.products.some((p: { name: string }) => p.name === 'Test Piece'));
 
   // ---- Security headers ----
   r = await call('GET', '/health');
@@ -115,7 +117,7 @@ async function run() {
 
   // ---- Static serving ----
   let res = await fetch(BASE + '/');
-  let html = await res.text();
+  const html = await res.text();
   check('index.html served', html.includes('MAISON') && html.includes('data-testid="skip-link"'));
   res = await fetch(BASE + '/styles.css');
   check('styles.css served', (await res.text()).includes('luxury design system'));

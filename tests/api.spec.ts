@@ -14,7 +14,7 @@ test.describe('API · contract', () => {
     expect(res.status()).toBe(200);
     const body = await res.json();
     expect(body.count).toBe(22);
-    const tote = body.products.find(p => p.name.includes('Noir'));
+    const tote = body.products.find((p: { name: string }) => p.name.includes('Noir'));
     expect(tote.effectiveCents).toBe(242250); // 285000 - 15%
     expect(tote.onSale).toBe(true);
   });
