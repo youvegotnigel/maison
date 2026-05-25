@@ -115,6 +115,12 @@ test.describe('Mobile · new buyer registration', () => {
     await page.getByTestId('register-email').fill('sophie.mobile@test.maison');
     await page.getByTestId('register-password').fill('NewBuyer123!');
     await page.getByTestId('register-confirm-password').fill('NewBuyer123!');
+
+    await page.getByTestId('dob-display').click();
+    await page.getByTestId('dob-year-select').selectOption('1992');
+    await page.getByTestId('dob-month-select').selectOption('8');
+    await page.getByTestId('dob-day-20').click();
+
     await page.getByTestId('register-submit').click();
 
     await expect(page.getByTestId('current-user')).toHaveAttribute('data-role', 'buyer');
@@ -144,5 +150,14 @@ test.describe('Mobile · new buyer registration', () => {
     await expect(page.locator('body')).toHaveAttribute('data-app-ready', 'true');
     const scrollWidth = await page.evaluate(() => document.body.scrollWidth);
     expect(scrollWidth).toBeLessThanOrEqual(375);
+  });
+
+  test('DOB popup does not overflow the viewport when open', async ({ page }) => {
+    await page.goto(BASE + '#/register');
+    await expect(page.locator('body')).toHaveAttribute('data-app-ready', 'true');
+    await page.getByTestId('dob-display').click();
+    await expect(page.getByTestId('dob-picker')).toHaveAttribute('aria-hidden', 'false');
+    const popupWidth = await page.getByTestId('dob-picker').evaluate((el: HTMLElement) => el.getBoundingClientRect().width);
+    expect(popupWidth).toBeLessThanOrEqual(375);
   });
 });
