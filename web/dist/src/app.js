@@ -396,7 +396,6 @@ async function pageRegister() {
     const buyerNameRow = form.querySelector('#buyer-name-row');
     const sellerNameRow = form.querySelector('#seller-name-row');
     const buyerExtraRow = form.querySelector('#buyer-extra-row');
-    const confirmField = form.querySelector('#confirm-password-field');
     const setRole = (r) => {
         role = r;
         const isBuyer = r === 'buyer';
@@ -405,7 +404,6 @@ async function pageRegister() {
         buyerNameRow.style.display = isBuyer ? '' : 'none';
         sellerNameRow.style.display = isBuyer ? 'none' : '';
         buyerExtraRow.style.display = isBuyer ? '' : 'none';
-        confirmField.style.display = isBuyer ? '' : 'none';
     };
     bBuyer.onclick = () => setRole('buyer');
     bSeller.onclick = () => setRole('seller');
@@ -433,6 +431,11 @@ async function pageRegister() {
         }
         else {
             const name = form.querySelector('[data-testid="register-name"]').value.trim();
+            const confirmPassword = form.querySelector('[data-testid="register-confirm-password"]').value;
+            if (password !== confirmPassword) {
+                alertEl.innerHTML = `<div class="alert alert--error" data-testid="register-error" role="alert">Passwords do not match.</div>`;
+                return;
+            }
             payload = { name, email, password, role };
         }
         try {
