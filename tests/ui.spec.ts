@@ -66,3 +66,57 @@ test.describe('UI · seller dashboard', () => {
     await expect(page.getByTestId('listing-row').filter({ hasText: 'Test Atelier Piece' })).toBeVisible();
   });
 });
+
+test.describe('UI · new buyer registration and purchase', () => {
+  test('new buyer registers with all fields, then completes a purchase', async ({ page }) => {
+    await page.goto(BASE + '#/register');
+    await expect(page.locator('body')).toHaveAttribute('data-app-ready', 'true');
+
+    // Fill extended buyer registration form
+    await page.getByTestId('register-first-name').fill('Sophie');
+    await page.getByTestId('register-last-name').fill('Laurent');
+    await page.getByTestId('register-email').fill('sophie.laurent@test.maison');
+    await page.getByTestId('register-gender').selectOption('female');
+    await page.getByTestId('register-phone').fill('+33 1 23 45 67 89');
+    await page.getByTestId('register-password').fill('NewBuyer123!');
+    await page.getByTestId('register-confirm-password').fill('NewBuyer123!');
+    await page.getByTestId('register-submit').click();
+
+    // Confirm registration and auto-login
+    await expect(page.getByTestId('current-user')).toHaveAttribute('data-role', 'buyer');
+    await expect(page.getByTestId('flash-success')).toContainText('Sophie Laurent');
+
+    // Add first in-stock product to cart
+    await page.getByTestId('product-card').first().click();
+    await expect(page.getByTestId('product-detail')).toBeVisible();
+    await page.getByTestId('add-to-cart').click();
+    await expect(page.getByTestId('cart-count')).toHaveText('1');
+
+    // Checkout
+    await page.getByTestId('nav-cart').click();
+    await page.getByTestId('checkout-button').click();
+    await page.getByTestId('ship-address').fill('15 Rue de la Paix');
+    await page.getByTestId('ship-city').fill('Paris');
+    await page.getByTestId('ship-postal').fill('75001');
+    await page.getByTestId('place-order').click();
+
+    await expect(page.getByTestId('order-confirmation')).toBeVisible();
+    await expect(page.getByTestId('order-reference')).toContainText('ORD-');
+  });
+
+  test('password mismatch shows inline error and does not submit', async ({ page }) => {
+    await page.goto(BASE + '#/register');
+    await expect(page.locator('body')).toHaveAttribute('data-app-ready', 'true');
+
+    await page.getByTestId('register-first-name').fill('Sophie');
+    await page.getByTestId('register-last-name').fill('Laurent');
+    await page.getByTestId('register-email').fill('sophie2@test.maison');
+    await page.getByTestId('register-password').fill('NewBuyer123!');
+    await page.getByTestId('register-confirm-password').fill('Different999!');
+    await page.getByTestId('register-submit').click();
+
+    await expect(page.getByTestId('register-error')).toContainText('Passwords do not match');
+    // Still on register page — not logged in
+    await expect(page.getByTestId('nav-login')).toBeVisible();
+  });
+});
