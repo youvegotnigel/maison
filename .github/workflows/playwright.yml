@@ -7,7 +7,21 @@ on:
     branches: [master]
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+
   test-ui:
+    needs: [lint]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -52,9 +66,10 @@ jobs:
           if-no-files-found: ignore
       - name: Stop app
         if: always()
-        run: pkill -f "server/src/index.js" || true
+        run: pkill -f "server/dist/index.js" || true
 
   test-mobile:
+    needs: [lint]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -99,9 +114,10 @@ jobs:
           if-no-files-found: ignore
       - name: Stop app
         if: always()
-        run: pkill -f "server/src/index.js" || true
+        run: pkill -f "server/dist/index.js" || true
 
   test-api:
+    needs: [lint]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -144,9 +160,10 @@ jobs:
           if-no-files-found: ignore
       - name: Stop app
         if: always()
-        run: pkill -f "server/src/index.js" || true
+        run: pkill -f "server/dist/index.js" || true
 
   test-security:
+    needs: [lint]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -189,9 +206,10 @@ jobs:
           if-no-files-found: ignore
       - name: Stop app
         if: always()
-        run: pkill -f "server/src/index.js" || true
+        run: pkill -f "server/dist/index.js" || true
 
   test-a11y:
+    needs: [lint]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -236,4 +254,4 @@ jobs:
           if-no-files-found: ignore
       - name: Stop app
         if: always()
-        run: pkill -f "server/src/index.js" || true
+        run: pkill -f "server/dist/index.js" || true
