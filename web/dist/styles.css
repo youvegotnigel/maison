@@ -288,3 +288,130 @@ h1, h2, h3, h4 { font-family: var(--serif); font-weight: 500; line-height: 1.1; 
   .nav--open .cart-pill { gap: 10px; }
   .nav--open .tiny { padding: 10px 28px; font-size: 0.76rem; }
 }
+
+/* ── DOB Calendar Picker ── */
+.dob-field { position: relative; }
+
+.dob-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  background: var(--ink-3);
+  color: var(--cream);
+  cursor: pointer;
+  border-radius: var(--radius);
+  font-family: var(--sans);
+  font-size: 0.95rem;
+  transition: border-color 0.2s;
+  user-select: none;
+  min-height: 42px;
+}
+.dob-trigger:hover,
+.dob-trigger:focus { border-color: var(--gold); outline: none; }
+
+.dob-trigger__icon { color: var(--gold); flex-shrink: 0; margin-left: 10px; }
+
+.dob-popup {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 200;
+  background: var(--ink-2);
+  border: 1px solid var(--gold);
+  border-radius: 4px;
+  padding: 18px;
+  width: 292px;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.6), 0 0 0 1px var(--line-soft);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-8px);
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+.dob-popup--open { opacity: 1; pointer-events: auto; transform: translateY(0); }
+
+.dob-nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+.dob-nav__arrow {
+  background: none;
+  border: 1px solid var(--line);
+  color: var(--gold);
+  cursor: pointer;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius);
+  font-size: 0.7rem;
+  padding: 0;
+  flex-shrink: 0;
+  transition: border-color 0.15s;
+}
+.dob-nav__arrow:hover { border-color: var(--gold); }
+.dob-nav__select {
+  flex: 1;
+  appearance: none;
+  background: var(--ink-3);
+  border: 1px solid var(--line);
+  color: var(--gold);
+  padding: 5px 8px;
+  font-family: var(--serif);
+  font-size: 0.88rem;
+  border-radius: var(--radius);
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 0.15s;
+}
+.dob-nav__select:focus { outline: none; border-color: var(--gold); }
+
+.dob-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  margin-bottom: 6px;
+}
+.dob-weekdays span {
+  text-align: center;
+  font-size: 0.68rem;
+  color: var(--gold);
+  opacity: 0.65;
+  padding: 3px 0;
+  font-family: var(--serif);
+  letter-spacing: 0.04em;
+}
+
+.dob-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+.dob-grid__blank { aspect-ratio: 1; }
+.dob-day {
+  aspect-ratio: 1;
+  background: none;
+  border: none;
+  color: var(--cream);
+  cursor: pointer;
+  border-radius: var(--radius);
+  font-size: 0.78rem;
+  font-family: var(--sans);
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.12s, color 0.12s;
+  line-height: 1;
+}
+.dob-day:hover:not(:disabled) { background: var(--ink-3); color: var(--gold); }
+.dob-day--selected { background: var(--gold) !important; color: var(--ink) !important; font-weight: 600; }
+.dob-day--disabled { color: var(--muted); cursor: not-allowed; opacity: 0.3; }
+
+@media (max-width: 480px) {
+  .dob-popup { width: calc(100vw - 40px); left: 0; }
+}
