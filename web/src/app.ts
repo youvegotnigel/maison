@@ -553,6 +553,26 @@ async function pageRegister(): Promise<void> {
             </div>
           </div>
         </div>
+        <div id="dob-wrapper" class="dob-field">
+          <div class="field">
+            <label for="reg-dob">Date of birth</label>
+            <div class="dob-trigger" data-testid="dob-display" id="reg-dob"
+                 tabindex="0" role="button" aria-haspopup="dialog"
+                 aria-expanded="false" aria-label="Select date of birth">
+              <span data-dob-display-text>Select date of birth</span>
+              <svg class="dob-trigger__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+                   viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                   stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+              </svg>
+            </div>
+          </div>
+          <div class="dob-popup" data-testid="dob-picker"
+               role="dialog" aria-label="Select date of birth" aria-hidden="true"></div>
+        </div>
         <div class="row" style="gap:16px;align-items:flex-end">
           <div class="field" style="flex:1">
             <label for="reg-password">Password</label>
@@ -577,6 +597,9 @@ async function pageRegister(): Promise<void> {
   const buyerNameRow = form.querySelector<HTMLElement>('#buyer-name-row')!;
   const sellerNameRow = form.querySelector<HTMLElement>('#seller-name-row')!;
   const buyerExtraRow = form.querySelector<HTMLElement>('#buyer-extra-row')!;
+
+  const dobWrapper = form.querySelector<HTMLElement>('#dob-wrapper')!;
+  const dob = buildDobPicker(dobWrapper);
 
   const setRole = (r: string): void => {
     role = r;
@@ -611,7 +634,7 @@ async function pageRegister(): Promise<void> {
         return;
       }
 
-      payload = { firstName, lastName, email, password, role };
+      payload = { firstName, lastName, email, password, role, dateOfBirth: dob.getValue() };
       if (gender) payload.gender = gender;
       if (phone) payload.phone = phone;
     } else {
@@ -623,7 +646,7 @@ async function pageRegister(): Promise<void> {
         return;
       }
 
-      payload = { name, email, password, role };
+      payload = { name, email, password, role, dateOfBirth: dob.getValue() };
     }
 
     try {

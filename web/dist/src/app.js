@@ -277,6 +277,128 @@ async function pageProduct(id) {
         };
     }
 }
+function buildDobPicker(wrapper) {
+    const MONTH_NAMES = [
+        'January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December',
+    ];
+    const maxYear = new Date().getFullYear() - 18;
+    let selected = '';
+    let viewYear = maxYear - 12;
+    let viewMonth = new Date().getMonth() + 1; // 1–12
+    const trigger = wrapper.querySelector('[data-testid="dob-display"]');
+    const popup = wrapper.querySelector('[data-testid="dob-picker"]');
+    function isOpen() { return popup.classList.contains('dob-popup--open'); }
+    function open() {
+        renderCalendar();
+        popup.classList.add('dob-popup--open');
+        popup.setAttribute('aria-hidden', 'false');
+        trigger.setAttribute('aria-expanded', 'true');
+    }
+    function close() {
+        popup.classList.remove('dob-popup--open');
+        popup.setAttribute('aria-hidden', 'true');
+        trigger.setAttribute('aria-expanded', 'false');
+    }
+    function updateTriggerText() {
+        const span = trigger.querySelector('[data-dob-display-text]');
+        if (!selected) {
+            span.textContent = 'Select date of birth';
+            return;
+        }
+        const [y, m, d] = selected.split('-').map(Number);
+        span.textContent = `${d} ${MONTH_NAMES[m - 1]} ${y}`;
+    }
+    function renderCalendar() {
+        const monthOpts = MONTH_NAMES.map((name, i) => `<option value="${i + 1}"${viewMonth === i + 1 ? ' selected' : ''}>${name}</option>`).join('');
+        const yearOpts = [];
+        for (let y = maxYear; y >= 1920; y--) {
+            yearOpts.push(`<option value="${y}"${viewYear === y ? ' selected' : ''}>${y}</option>`);
+        }
+        const firstWeekday = new Date(viewYear, viewMonth - 1, 1).getDay(); // 0=Sun
+        const leadBlanks = (firstWeekday + 6) % 7; // Monday-first grid
+        const daysInMonth = new Date(viewYear, viewMonth, 0).getDate();
+        const cutoff = new Date();
+        cutoff.setFullYear(cutoff.getFullYear() - 18);
+        let cells = '';
+        for (let i = 0; i < leadBlanks; i++)
+            cells += '<span class="dob-grid__blank"></span>';
+        for (let d = 1; d <= daysInMonth; d++) {
+            const date = new Date(viewYear, viewMonth - 1, d);
+            const iso = `${viewYear}-${String(viewMonth).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+            const disabled = date > cutoff;
+            const sel = selected === iso;
+            cells += `<button type="button" data-testid="dob-day-${d}"
+        class="dob-day${sel ? ' dob-day--selected' : ''}${disabled ? ' dob-day--disabled' : ''}"
+        aria-label="Day ${d}"${disabled ? ' disabled' : ''}>${d}</button>`;
+        }
+        popup.innerHTML = `
+      <div class="dob-nav">
+        <button type="button" class="dob-nav__arrow" data-testid="dob-prev-month" aria-label="Previous month">&#9664;</button>
+        <select class="dob-nav__select" data-testid="dob-month-select">${monthOpts}</select>
+        <select class="dob-nav__select" data-testid="dob-year-select">${yearOpts}</select>
+        <button type="button" class="dob-nav__arrow" data-testid="dob-next-month" aria-label="Next month">&#9654;</button>
+      </div>
+      <div class="dob-weekdays">
+        <span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span>
+        <span>Sa</span><span>Su</span>
+      </div>
+      <div class="dob-grid">${cells}</div>`;
+        popup.querySelector('[data-testid="dob-prev-month"]').onclick = () => {
+            viewMonth--;
+            if (viewMonth < 1) {
+                viewMonth = 12;
+                viewYear--;
+            }
+            renderCalendar();
+        };
+        popup.querySelector('[data-testid="dob-next-month"]').onclick = () => {
+            if (viewYear >= maxYear && viewMonth >= 12)
+                return;
+            viewMonth++;
+            if (viewMonth > 12) {
+                viewMonth = 1;
+                viewYear++;
+            }
+            renderCalendar();
+        };
+        popup.querySelector('[data-testid="dob-month-select"]').onchange = (e) => {
+            viewMonth = parseInt(e.target.value, 10);
+            renderCalendar();
+        };
+        popup.querySelector('[data-testid="dob-year-select"]').onchange = (e) => {
+            viewYear = parseInt(e.target.value, 10);
+            renderCalendar();
+        };
+        popup.querySelectorAll('[data-testid^="dob-day-"]').forEach(btn => {
+            btn.onclick = () => {
+                const n = parseInt((btn.dataset.testid ?? '').replace('dob-day-', ''), 10);
+                selected = `${viewYear}-${String(viewMonth).padStart(2, '0')}-${String(n).padStart(2, '0')}`;
+                updateTriggerText();
+                close();
+            };
+        });
+    }
+    trigger.onclick = () => { isOpen() ? close() : open(); };
+    trigger.onkeydown = (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            trigger.click();
+        }
+    };
+    // Close on outside click; guard against stale listeners after page navigation
+    document.addEventListener('click', (e) => {
+        if (!document.contains(wrapper))
+            return;
+        if (!wrapper.contains(e.target))
+            close();
+    });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && isOpen())
+            close();
+    });
+    return { getValue: () => selected };
+}
 async function pageLogin() {
     app.innerHTML = `
     <section class="section reveal">
@@ -374,6 +496,26 @@ async function pageRegister() {
             </div>
           </div>
         </div>
+        <div id="dob-wrapper" class="dob-field">
+          <div class="field">
+            <label for="reg-dob">Date of birth</label>
+            <div class="dob-trigger" data-testid="dob-display" id="reg-dob"
+                 tabindex="0" role="button" aria-haspopup="dialog"
+                 aria-expanded="false" aria-label="Select date of birth">
+              <span data-dob-display-text>Select date of birth</span>
+              <svg class="dob-trigger__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+                   viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                   stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+              </svg>
+            </div>
+          </div>
+          <div class="dob-popup" data-testid="dob-picker"
+               role="dialog" aria-label="Select date of birth" aria-hidden="true"></div>
+        </div>
         <div class="row" style="gap:16px;align-items:flex-end">
           <div class="field" style="flex:1">
             <label for="reg-password">Password</label>
@@ -396,6 +538,8 @@ async function pageRegister() {
     const buyerNameRow = form.querySelector('#buyer-name-row');
     const sellerNameRow = form.querySelector('#seller-name-row');
     const buyerExtraRow = form.querySelector('#buyer-extra-row');
+    const dobWrapper = form.querySelector('#dob-wrapper');
+    const dob = buildDobPicker(dobWrapper);
     const setRole = (r) => {
         role = r;
         const isBuyer = r === 'buyer';
@@ -423,7 +567,7 @@ async function pageRegister() {
                 alertEl.innerHTML = `<div class="alert alert--error" data-testid="register-error" role="alert">Passwords do not match.</div>`;
                 return;
             }
-            payload = { firstName, lastName, email, password, role };
+            payload = { firstName, lastName, email, password, role, dateOfBirth: dob.getValue() };
             if (gender)
                 payload.gender = gender;
             if (phone)
@@ -436,7 +580,7 @@ async function pageRegister() {
                 alertEl.innerHTML = `<div class="alert alert--error" data-testid="register-error" role="alert">Passwords do not match.</div>`;
                 return;
             }
-            payload = { name, email, password, role };
+            payload = { name, email, password, role, dateOfBirth: dob.getValue() };
         }
         try {
             const r = await api.register(payload);
