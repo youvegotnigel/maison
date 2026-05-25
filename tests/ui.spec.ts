@@ -67,6 +67,49 @@ test.describe('UI · seller dashboard', () => {
   });
 });
 
+test.describe('UI · new seller registration', () => {
+  test('new seller registers with confirm password and lands on seller dashboard', async ({ page }) => {
+    await page.goto(BASE + '#/register');
+    await expect(page.locator('body')).toHaveAttribute('data-app-ready', 'true');
+
+    await page.getByTestId('role-seller').click();
+    await expect(page.getByTestId('role-seller')).toHaveAttribute('aria-pressed', 'true');
+
+    await page.getByTestId('register-name').fill('Atelier Renard');
+    await page.getByTestId('register-email').fill('renard@test.maison');
+    await page.getByTestId('register-password').fill('NewSeller123!');
+    await page.getByTestId('register-confirm-password').fill('NewSeller123!');
+    await page.getByTestId('register-submit').click();
+
+    await expect(page.getByTestId('current-user')).toHaveAttribute('data-role', 'seller');
+    await expect(page.getByTestId('flash-success')).toContainText('Atelier Renard');
+  });
+
+  test('seller password mismatch shows inline error and does not submit', async ({ page }) => {
+    await page.goto(BASE + '#/register');
+    await expect(page.locator('body')).toHaveAttribute('data-app-ready', 'true');
+
+    await page.getByTestId('role-seller').click();
+    await page.getByTestId('register-name').fill('Atelier Dubois');
+    await page.getByTestId('register-email').fill('dubois@test.maison');
+    await page.getByTestId('register-password').fill('NewSeller123!');
+    await page.getByTestId('register-confirm-password').fill('Different999!');
+    await page.getByTestId('register-submit').click();
+
+    await expect(page.getByTestId('register-error')).toContainText('Passwords do not match');
+    await expect(page.getByTestId('nav-login')).toBeVisible();
+  });
+
+  test('confirm password field is visible when seller role is selected', async ({ page }) => {
+    await page.goto(BASE + '#/register');
+    await expect(page.locator('body')).toHaveAttribute('data-app-ready', 'true');
+
+    await page.getByTestId('role-seller').click();
+    await expect(page.locator('#confirm-password-field')).toBeVisible();
+    await expect(page.locator('#reg-confirm-password')).toBeVisible();
+  });
+});
+
 test.describe('UI · new buyer registration and purchase', () => {
   test('new buyer registers with all fields, then completes a purchase', async ({ page }) => {
     await page.goto(BASE + '#/register');
