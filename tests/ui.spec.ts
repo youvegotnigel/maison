@@ -79,6 +79,12 @@ test.describe('UI · new seller registration', () => {
     await page.getByTestId('register-email').fill('renard@test.maison');
     await page.getByTestId('register-password').fill('NewSeller123!');
     await page.getByTestId('register-confirm-password').fill('NewSeller123!');
+
+    await page.getByTestId('dob-display').click();
+    await page.getByTestId('dob-year-select').selectOption('1985');
+    await page.getByTestId('dob-month-select').selectOption('3');
+    await page.getByTestId('dob-day-15').click();
+
     await page.getByTestId('register-submit').click();
 
     await expect(page.getByTestId('current-user')).toHaveAttribute('data-role', 'seller');
@@ -123,6 +129,12 @@ test.describe('UI · new buyer registration and purchase', () => {
     await page.getByTestId('register-phone').fill('+33 1 23 45 67 89');
     await page.getByTestId('register-password').fill('NewBuyer123!');
     await page.getByTestId('register-confirm-password').fill('NewBuyer123!');
+
+    await page.getByTestId('dob-display').click();
+    await page.getByTestId('dob-year-select').selectOption('1990');
+    await page.getByTestId('dob-month-select').selectOption('6');
+    await page.getByTestId('dob-day-10').click();
+
     await page.getByTestId('register-submit').click();
 
     // Confirm registration and auto-login
@@ -161,5 +173,25 @@ test.describe('UI · new buyer registration and purchase', () => {
     await expect(page.getByTestId('register-error')).toContainText('Passwords do not match');
     // Still on register page — not logged in
     await expect(page.getByTestId('nav-login')).toBeVisible();
+  });
+});
+
+test.describe('UI · age gate', () => {
+  test('DOB picker only shows years up to currentYear-18', async ({ page }) => {
+    await page.goto(BASE + '#/register');
+    await expect(page.locator('body')).toHaveAttribute('data-app-ready', 'true');
+
+    await page.getByTestId('dob-display').click();
+    await expect(page.getByTestId('dob-picker')).toHaveAttribute('aria-hidden', 'false');
+
+    // The first option in the year select should be the max allowed year (currentYear - 18)
+    const maxYear = await page.getByTestId('dob-year-select').evaluate((sel: HTMLSelectElement) =>
+      parseInt(sel.options[0].value, 10)
+    );
+    expect(maxYear).toBe(new Date().getFullYear() - 18);
+
+    // Close picker
+    await page.keyboard.press('Escape');
+    await expect(page.getByTestId('dob-picker')).toHaveAttribute('aria-hidden', 'true');
   });
 });
