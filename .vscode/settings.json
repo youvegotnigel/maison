@@ -1,3 +1,4 @@
 {
-  "typescript.tsdk": "node_modules/typescript/lib"
+  "js/ts.tsdk.promptToUseWorkspaceVersion": true,
+  "cSpell.words": ["maison", "Testids", "WCAG", "decr"]
 }
