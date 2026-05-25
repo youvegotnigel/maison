@@ -9,6 +9,7 @@ interface User {
   lastName: string | null;
   gender: string | null;
   phone: string | null;
+  dateOfBirth: string;
 }
 
 interface Product {
@@ -330,6 +331,129 @@ async function pageProduct(id: string): Promise<void> {
       } finally { btn.disabled = false; }
     };
   }
+}
+
+function buildDobPicker(wrapper: HTMLElement): { getValue: () => string } {
+  const MONTH_NAMES = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December',
+  ];
+  const maxYear = new Date().getFullYear() - 18;
+  let selected = '';
+  let viewYear = maxYear - 12;
+  let viewMonth = new Date().getMonth() + 1; // 1–12
+
+  const trigger = wrapper.querySelector<HTMLElement>('[data-testid="dob-display"]')!;
+  const popup   = wrapper.querySelector<HTMLElement>('[data-testid="dob-picker"]')!;
+
+  function isOpen(): boolean { return popup.classList.contains('dob-popup--open'); }
+
+  function open(): void {
+    renderCalendar();
+    popup.classList.add('dob-popup--open');
+    popup.setAttribute('aria-hidden', 'false');
+    trigger.setAttribute('aria-expanded', 'true');
+  }
+
+  function close(): void {
+    popup.classList.remove('dob-popup--open');
+    popup.setAttribute('aria-hidden', 'true');
+    trigger.setAttribute('aria-expanded', 'false');
+  }
+
+  function updateTriggerText(): void {
+    const span = trigger.querySelector<HTMLElement>('[data-dob-display-text]')!;
+    if (!selected) { span.textContent = 'Select date of birth'; return; }
+    const [y, m, d] = selected.split('-').map(Number);
+    span.textContent = `${d} ${MONTH_NAMES[m - 1]} ${y}`;
+  }
+
+  function renderCalendar(): void {
+    const monthOpts = MONTH_NAMES.map((name, i) =>
+      `<option value="${i + 1}"${viewMonth === i + 1 ? ' selected' : ''}>${name}</option>`
+    ).join('');
+
+    const yearOpts: string[] = [];
+    for (let y = maxYear; y >= 1920; y--) {
+      yearOpts.push(`<option value="${y}"${viewYear === y ? ' selected' : ''}>${y}</option>`);
+    }
+
+    const firstWeekday = new Date(viewYear, viewMonth - 1, 1).getDay(); // 0=Sun
+    const leadBlanks   = (firstWeekday + 6) % 7; // Monday-first grid
+    const daysInMonth  = new Date(viewYear, viewMonth, 0).getDate();
+
+    const cutoff = new Date();
+    cutoff.setFullYear(cutoff.getFullYear() - 18);
+
+    let cells = '';
+    for (let i = 0; i < leadBlanks; i++) cells += '<span class="dob-grid__blank"></span>';
+    for (let d = 1; d <= daysInMonth; d++) {
+      const date     = new Date(viewYear, viewMonth - 1, d);
+      const iso      = `${viewYear}-${String(viewMonth).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      const disabled = date > cutoff;
+      const sel      = selected === iso;
+      cells += `<button type="button" data-testid="dob-day-${d}"
+        class="dob-day${sel ? ' dob-day--selected' : ''}${disabled ? ' dob-day--disabled' : ''}"
+        aria-label="Day ${d}"${disabled ? ' disabled' : ''}>${d}</button>`;
+    }
+
+    popup.innerHTML = `
+      <div class="dob-nav">
+        <button type="button" class="dob-nav__arrow" data-testid="dob-prev-month" aria-label="Previous month">&#9664;</button>
+        <select class="dob-nav__select" data-testid="dob-month-select">${monthOpts}</select>
+        <select class="dob-nav__select" data-testid="dob-year-select">${yearOpts}</select>
+        <button type="button" class="dob-nav__arrow" data-testid="dob-next-month" aria-label="Next month">&#9654;</button>
+      </div>
+      <div class="dob-weekdays">
+        <span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span>
+        <span>Sa</span><span>Su</span>
+      </div>
+      <div class="dob-grid">${cells}</div>`;
+
+    popup.querySelector<HTMLElement>('[data-testid="dob-prev-month"]')!.onclick = () => {
+      viewMonth--;
+      if (viewMonth < 1) { viewMonth = 12; viewYear--; }
+      renderCalendar();
+    };
+    popup.querySelector<HTMLElement>('[data-testid="dob-next-month"]')!.onclick = () => {
+      if (viewYear >= maxYear && viewMonth >= 12) return;
+      viewMonth++;
+      if (viewMonth > 12) { viewMonth = 1; viewYear++; }
+      renderCalendar();
+    };
+    popup.querySelector<HTMLSelectElement>('[data-testid="dob-month-select"]')!.onchange = (e) => {
+      viewMonth = parseInt((e.target as HTMLSelectElement).value, 10);
+      renderCalendar();
+    };
+    popup.querySelector<HTMLSelectElement>('[data-testid="dob-year-select"]')!.onchange = (e) => {
+      viewYear = parseInt((e.target as HTMLSelectElement).value, 10);
+      renderCalendar();
+    };
+    popup.querySelectorAll<HTMLElement>('[data-testid^="dob-day-"]').forEach(btn => {
+      btn.onclick = () => {
+        const n = parseInt((btn.dataset.testid ?? '').replace('dob-day-', ''), 10);
+        selected = `${viewYear}-${String(viewMonth).padStart(2, '0')}-${String(n).padStart(2, '0')}`;
+        updateTriggerText();
+        close();
+      };
+    });
+  }
+
+  trigger.onclick = () => { isOpen() ? close() : open(); };
+  trigger.onkeydown = (e) => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); trigger.click(); }
+  };
+
+  // Close on outside click; guard against stale listeners after page navigation
+  document.addEventListener('click', (e) => {
+    if (!document.contains(wrapper)) return;
+    if (!wrapper.contains(e.target as Node)) close();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && isOpen()) close();
+  });
+
+  return { getValue: () => selected };
 }
 
 async function pageLogin(): Promise<void> {
