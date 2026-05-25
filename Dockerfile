@@ -24,4 +24,4 @@ EXPOSE 4000
 
 ENV PORT=4000
 
-CMD ["node", "server/src/index.js"]
+CMD ["node", "server/dist/index.js"]
