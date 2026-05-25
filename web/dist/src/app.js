@@ -381,7 +381,12 @@ function buildDobPicker(wrapper) {
             };
         });
     }
-    trigger.onclick = () => { isOpen() ? close() : open(); };
+    trigger.onclick = () => { if (isOpen()) {
+        close();
+    }
+    else {
+        open();
+    } };
     trigger.onkeydown = (e) => {
         if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
