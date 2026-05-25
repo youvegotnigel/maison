@@ -34,8 +34,42 @@ test.describe('Accessibility · WCAG', () => {
     await expect(page.locator('label[for="reg-gender"]')).toBeAttached();
     await expect(page.locator('label[for="reg-phone"]')).toBeAttached();
     await expect(page.locator('label[for="reg-confirm-password"]')).toBeAttached();
+    await expect(page.locator('label[for="reg-dob"]')).toBeAttached();
     // Role toggle buttons have aria-pressed
     await expect(page.getByTestId('role-buyer')).toHaveAttribute('aria-pressed', 'true');
     await expect(page.getByTestId('role-seller')).toHaveAttribute('aria-pressed', 'false');
+  });
+});
+
+test.describe('Accessibility · DOB picker', () => {
+  test('DOB trigger has correct ARIA attributes', async ({ page }) => {
+    await page.goto(BASE + '#/register');
+    await expect(page.locator('body')).toHaveAttribute('data-app-ready', 'true');
+    // Check initial state
+    await expect(page.getByTestId('dob-display')).toHaveAttribute('role', 'button');
+    await expect(page.getByTestId('dob-display')).toHaveAttribute('aria-haspopup', 'dialog');
+    await expect(page.getByTestId('dob-display')).toHaveAttribute('aria-expanded', 'false');
+    // Click to open
+    await page.getByTestId('dob-display').click();
+    // Check open state
+    await expect(page.getByTestId('dob-display')).toHaveAttribute('aria-expanded', 'true');
+    await expect(page.getByTestId('dob-picker')).toHaveAttribute('aria-hidden', 'false');
+    await expect(page.getByTestId('dob-picker')).toHaveAttribute('role', 'dialog');
+    await expect(page.getByTestId('dob-picker')).toHaveAttribute('aria-label', 'Select date of birth');
+    // Press Escape to close
+    await page.keyboard.press('Escape');
+    // Check closed state
+    await expect(page.getByTestId('dob-display')).toHaveAttribute('aria-expanded', 'false');
+    await expect(page.getByTestId('dob-picker')).toHaveAttribute('aria-hidden', 'true');
+  });
+
+  test('DOB day buttons have aria-label', async ({ page }) => {
+    await page.goto(BASE + '#/register');
+    await expect(page.locator('body')).toHaveAttribute('data-app-ready', 'true');
+    // Click to open picker
+    await page.getByTestId('dob-display').click();
+    // Check day button labels
+    await expect(page.getByTestId('dob-day-1')).toHaveAttribute('aria-label', 'Day 1');
+    await expect(page.getByTestId('dob-day-15')).toHaveAttribute('aria-label', 'Day 15');
   });
 });
