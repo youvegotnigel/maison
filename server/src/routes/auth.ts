@@ -13,6 +13,21 @@ function validPassword(pw: unknown): boolean {
   return typeof pw === 'string' && pw.length >= 8 && /[A-Za-z]/.test(pw) && /\d/.test(pw);
 }
 
+function validDob(dob: unknown): boolean {
+  if (typeof dob !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(dob)) return false;
+  const [y, m, d] = dob.split('-').map(Number);
+  const date = new Date(y, m - 1, d);
+  return date.getFullYear() === y && date.getMonth() === m - 1 && date.getDate() === d;
+}
+
+function ageAtLeast18(dob: string): boolean {
+  const [y, m, d] = dob.split('-').map(Number);
+  const today = new Date();
+  let age = today.getFullYear() - y;
+  if (today.getMonth() + 1 < m || (today.getMonth() + 1 === m && today.getDate() < d)) age--;
+  return age >= 18;
+}
+
 const cookieOpts = {
   httpOnly: true,
   sameSite: 'lax',
@@ -30,6 +45,7 @@ function publicUser(u: DbUser) {
     lastName: u.last_name ?? null,
     gender: u.gender ?? null,
     phone: u.phone ?? null,
+    dateOfBirth: u.date_of_birth,
   };
 }
 
@@ -47,6 +63,18 @@ router.post('/register', (req, res) => {
   if (role !== 'buyer' && role !== 'seller') {
     return fail(res, 400, 'INVALID_ROLE', "Role must be either 'buyer' or 'seller'.");
   }
+
+  const rawDob: string = String(req.body.dateOfBirth ?? '').trim();
+  if (!rawDob) {
+    return fail(res, 400, 'MISSING_DOB', 'Please provide your date of birth.');
+  }
+  if (!validDob(rawDob)) {
+    return fail(res, 400, 'INVALID_DOB', 'Date of birth must be a valid date in YYYY-MM-DD format.');
+  }
+  if (!ageAtLeast18(rawDob)) {
+    return fail(res, 400, 'UNDERAGE', 'You must be at least 18 years old to create an account.');
+  }
+  const dob = rawDob;
 
   let insertName: string;
   let firstName: string | null = null;
@@ -91,8 +119,8 @@ router.post('/register', (req, res) => {
 
   const hash = bcrypt.hashSync(password, 8);
   const id = db.prepare(
-    'INSERT INTO users (email, password_hash, name, role, first_name, last_name, gender, phone) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
-  ).run(email, hash, insertName, role, firstName, lastName, gender, phone).lastInsertRowid;
+    'INSERT INTO users (email, password_hash, name, role, first_name, last_name, gender, phone, date_of_birth) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+  ).run(email, hash, insertName, role, firstName, lastName, gender, phone, dob).lastInsertRowid;
 
   if (role === 'buyer') {
     db.prepare('INSERT INTO carts (buyer_id) VALUES (?)').run(id);
