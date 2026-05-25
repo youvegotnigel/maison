@@ -344,7 +344,8 @@ function buildDobPicker(wrapper) {
         <span>Sa</span><span>Su</span>
       </div>
       <div class="dob-grid">${cells}</div>`;
-        popup.querySelector('[data-testid="dob-prev-month"]').onclick = () => {
+        popup.querySelector('[data-testid="dob-prev-month"]').onclick = (e) => {
+            e.stopPropagation();
             viewMonth--;
             if (viewMonth < 1) {
                 viewMonth = 12;
@@ -352,7 +353,8 @@ function buildDobPicker(wrapper) {
             }
             renderCalendar();
         };
-        popup.querySelector('[data-testid="dob-next-month"]').onclick = () => {
+        popup.querySelector('[data-testid="dob-next-month"]').onclick = (e) => {
+            e.stopPropagation();
             if (viewYear >= maxYear && viewMonth >= 12)
                 return;
             viewMonth++;

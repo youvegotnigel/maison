@@ -410,12 +410,14 @@ function buildDobPicker(wrapper: HTMLElement): { getValue: () => string } {
       </div>
       <div class="dob-grid">${cells}</div>`;
 
-    popup.querySelector<HTMLElement>('[data-testid="dob-prev-month"]')!.onclick = () => {
+    popup.querySelector<HTMLElement>('[data-testid="dob-prev-month"]')!.onclick = (e) => {
+      e.stopPropagation();
       viewMonth--;
       if (viewMonth < 1) { viewMonth = 12; viewYear--; }
       renderCalendar();
     };
-    popup.querySelector<HTMLElement>('[data-testid="dob-next-month"]')!.onclick = () => {
+    popup.querySelector<HTMLElement>('[data-testid="dob-next-month"]')!.onclick = (e) => {
+      e.stopPropagation();
       if (viewYear >= maxYear && viewMonth >= 12) return;
       viewMonth++;
       if (viewMonth > 12) { viewMonth = 1; viewYear++; }
