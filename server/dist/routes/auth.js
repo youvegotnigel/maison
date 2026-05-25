@@ -15,8 +15,18 @@ const cookieOpts = {
     maxAge: 2 * 60 * 60 * 1000,
 };
 function publicUser(u) {
-    return { id: u.id, email: u.email, name: u.name, role: u.role };
+    return {
+        id: u.id,
+        email: u.email,
+        name: u.name,
+        role: u.role,
+        firstName: u.first_name ?? null,
+        lastName: u.last_name ?? null,
+        gender: u.gender ?? null,
+        phone: u.phone ?? null,
+    };
 }
+const VALID_GENDERS = ['female', 'male', 'non-binary', 'prefer_not_to_say'];
 router.post('/register', (req, res) => {
     const { email, password, name, role } = req.body || {};
     if (!email || !EMAIL_RE.test(email)) {
@@ -25,18 +35,49 @@ router.post('/register', (req, res) => {
     if (!validPassword(password)) {
         return fail(res, 400, 'WEAK_PASSWORD', 'Password must be at least 8 characters and include a letter and a number.');
     }
-    if (!name || !String(name).trim()) {
-        return fail(res, 400, 'INVALID_NAME', 'Please provide your name.');
-    }
     if (role !== 'buyer' && role !== 'seller') {
         return fail(res, 400, 'INVALID_ROLE', "Role must be either 'buyer' or 'seller'.");
+    }
+    let insertName;
+    let firstName = null;
+    let lastName = null;
+    let gender = null;
+    let phone = null;
+    if (role === 'buyer') {
+        firstName = String(req.body.firstName ?? '').trim();
+        lastName = String(req.body.lastName ?? '').trim();
+        if (!firstName)
+            return fail(res, 400, 'INVALID_FIRST_NAME', 'Please provide your first name.');
+        if (!lastName)
+            return fail(res, 400, 'INVALID_LAST_NAME', 'Please provide your last name.');
+        const rawGender = req.body.gender;
+        if (rawGender != null && rawGender !== '') {
+            if (!VALID_GENDERS.includes(rawGender)) {
+                return fail(res, 400, 'INVALID_GENDER', 'Gender must be one of: female, male, non-binary, prefer_not_to_say.');
+            }
+            gender = rawGender;
+        }
+        const rawPhone = req.body.phone;
+        if (rawPhone != null && rawPhone !== '') {
+            if (String(rawPhone).length > 30) {
+                return fail(res, 400, 'INVALID_PHONE', 'Phone number must not exceed 30 characters.');
+            }
+            phone = String(rawPhone);
+        }
+        insertName = `${firstName} ${lastName}`;
+    }
+    else {
+        if (!name || !String(name).trim()) {
+            return fail(res, 400, 'INVALID_NAME', 'Please provide your name.');
+        }
+        insertName = String(name).trim();
     }
     const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
     if (existing) {
         return fail(res, 409, 'EMAIL_TAKEN', 'An account with that email already exists.');
     }
     const hash = bcrypt.hashSync(password, 8);
-    const id = db.prepare('INSERT INTO users (email, password_hash, name, role) VALUES (?, ?, ?, ?)').run(email, hash, String(name).trim(), role).lastInsertRowid;
+    const id = db.prepare('INSERT INTO users (email, password_hash, name, role, first_name, last_name, gender, phone) VALUES (?, ?, ?, ?, ?, ?, ?, ?)').run(email, hash, insertName, role, firstName, lastName, gender, phone).lastInsertRowid;
     if (role === 'buyer') {
         db.prepare('INSERT INTO carts (buyer_id) VALUES (?)').run(id);
     }
