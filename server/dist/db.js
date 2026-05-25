@@ -25,6 +25,10 @@ export function initSchema() {
       password_hash TEXT NOT NULL,
       name          TEXT NOT NULL,
       role          TEXT NOT NULL CHECK (role IN ('buyer','seller')),
+      first_name    TEXT,
+      last_name     TEXT,
+      gender        TEXT CHECK (gender IN ('female','male','non-binary','prefer_not_to_say')),
+      phone         TEXT,
       created_at    TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
@@ -147,11 +151,11 @@ const SEED_PRODUCTS = [
 export function seed() {
     initSchema();
     const hash = bcrypt.hashSync(SEED_PASSWORD, 8);
-    const insUser = db.prepare('INSERT INTO users (email, password_hash, name, role) VALUES (?, ?, ?, ?)');
+    const insUser = db.prepare('INSERT INTO users (email, password_hash, name, role, first_name, last_name) VALUES (?, ?, ?, ?, ?, ?)');
     // Two known sellers + one known buyer for deterministic tests.
-    const seller1 = Number(insUser.run('seller@maison.test', hash, 'Atelier Maison', 'seller').lastInsertRowid);
-    const seller2 = Number(insUser.run('seller2@maison.test', hash, 'Maison Rive', 'seller').lastInsertRowid);
-    insUser.run('buyer@maison.test', hash, 'Aurelie Dupont', 'buyer');
+    const seller1 = Number(insUser.run('seller@maison.test', hash, 'Atelier Maison', 'seller', null, null).lastInsertRowid);
+    const seller2 = Number(insUser.run('seller2@maison.test', hash, 'Maison Rive', 'seller', null, null).lastInsertRowid);
+    insUser.run('buyer@maison.test', hash, 'Aurelie Dupont', 'buyer', 'Aurelie', 'Dupont');
     const insProduct = db.prepare(`INSERT INTO products (seller_id, name, description, category, price_cents, stock)
      VALUES (?, ?, ?, ?, ?, ?)`);
     const insImage = db.prepare('INSERT INTO product_images (product_id, url, sort_order) VALUES (?, ?, ?)');
