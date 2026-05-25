@@ -374,17 +374,17 @@ async function pageRegister() {
             </div>
           </div>
         </div>
-        <div class="row" style="gap:16px">
+        <div class="row" style="gap:16px;align-items:flex-end">
           <div class="field" style="flex:1">
             <label for="reg-password">Password</label>
             <input id="reg-password" type="password" data-testid="register-password" autocomplete="new-password" />
-            <p class="tiny" style="margin-top:6px">At least 8 characters, including a letter and a number.</p>
           </div>
           <div class="field" style="flex:1" id="confirm-password-field">
             <label for="reg-confirm-password">Confirm password</label>
             <input id="reg-confirm-password" type="password" data-testid="register-confirm-password" autocomplete="new-password" />
           </div>
         </div>
+        <p class="tiny" style="margin-top:6px">At least 8 characters, including a letter and a number.</p>
         <button class="btn btn--solid btn--block" data-testid="register-submit" type="submit">Create Account</button>
         <p class="muted" style="margin-top:20px;font-size:0.88rem">Already have an account? <a href="#/login" data-testid="goto-login" style="color:var(--gold)">Sign in</a></p>
       </form>
