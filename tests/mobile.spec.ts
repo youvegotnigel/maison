@@ -161,3 +161,23 @@ test.describe('Mobile · new buyer registration', () => {
     expect(popupWidth).toBeLessThanOrEqual(375);
   });
 });
+
+test.describe('Mobile · certificate', () => {
+  test.use({ viewport: { width: 375, height: 812 } });
+
+  test('certificate link is reachable and opens a new tab on mobile', async ({ page, context }) => {
+    await page.goto(BASE + '#/product/1');
+    await expect(page.getByTestId('product-detail')).toBeVisible();
+
+    const link = page.getByTestId('certificate-link');
+    await expect(link).toBeVisible();
+    await link.scrollIntoViewIfNeeded();
+
+    const [tab] = await Promise.all([
+      context.waitForEvent('page'),
+      link.click(),
+    ]);
+    await expect(tab.getByTestId('certificate-view')).toBeVisible();
+    await expect(tab).toHaveTitle('Certificate of Authenticity | Maison');
+  });
+});

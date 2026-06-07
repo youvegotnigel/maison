@@ -45,6 +45,8 @@ export const api = {
         return request('GET', '/products' + (qs ? '?' + qs : ''));
     },
     product: (id) => request('GET', '/products/' + id),
+    certificate: (id) => request('GET', `/products/${id}/certificate`),
+    issueCertificate: (id) => request('POST', `/products/${id}/certificate`),
     categories: () => request('GET', '/products/categories'),
     // seller
     myProducts: () => request('GET', '/products/seller/mine'),

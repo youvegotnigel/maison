@@ -26,6 +26,16 @@ interface Product {
   sellerName: string | null;
 }
 
+interface Certificate {
+  id: number;
+  productId: number;
+  productName: string;
+  serialNo: string;
+  issuer: string;
+  material: string;
+  issuedAt: string;
+}
+
 interface CartLine {
   itemId: number;
   productId: number;
@@ -307,6 +317,11 @@ async function pageProduct(id: string): Promise<void> {
               : `<button class="btn" disabled data-testid="add-to-cart-disabled">Sold Out</button>`}
           </div>
           ${!isBuyer ? `<p class="tiny" data-testid="buyer-hint" style="margin-top:18px">Sign in as a buyer to purchase.</p>` : ''}
+          <div class="row" data-testid="pdp-extras" style="margin-top:24px;gap:12px;flex-wrap:wrap">
+            <a class="btn btn--ghost btn--sm" data-testid="certificate-link" target="_blank" href="/certificate/${p.id}">View Certificate of Authenticity</a>
+            <button class="btn btn--ghost btn--sm" type="button" data-testid="size-guide-button">Size &amp; Fit Guide</button>
+            <button class="btn btn--ghost btn--sm" type="button" data-testid="share-all-button">Share this piece</button>
+          </div>
         </div>
       </div>
     </section>`;
@@ -331,6 +346,16 @@ async function pageProduct(id: string): Promise<void> {
       } finally { btn.disabled = false; }
     };
   }
+
+  // Multi-window triggers (always present, regardless of stock).
+  app.querySelector<HTMLElement>('[data-testid="size-guide-button"]')!.onclick = () => {
+    window.open('/size-guide', 'maison_size_guide', 'popup,width=480,height=640');
+  };
+  app.querySelector<HTMLElement>('[data-testid="share-all-button"]')!.onclick = () => {
+    window.open(`/share/${p.id}/link`, 'maison_share_link', 'popup,width=480,height=560');
+    window.open(`/share/${p.id}/email`, 'maison_share_email', 'popup,width=480,height=560');
+    window.open(`/share/${p.id}/preview`, 'maison_share_preview', 'popup,width=480,height=560');
+  };
 }
 
 function buildDobPicker(wrapper: HTMLElement): { getValue: () => string } {
@@ -962,9 +987,108 @@ async function router(): Promise<void> {
 }
 
 // ============================================================
+//  Standalone window/tab views (multi-window automation)
+//  Opened via path-style internal routes served by the SPA
+//  static fallback. Minimal chrome: own <main>, lang, one <h1>,
+//  root data-testid, deterministic title. No session/cart.
+// ============================================================
+function mountStandalone(rootTestId: string, title: string, innerHTML: string): HTMLElement {
+  document.documentElement.lang = 'en';
+  document.title = title;
+  document.body.innerHTML = `<main role="main" class="container" style="padding:48px 0">
+    <div data-testid="${rootTestId}">${innerHTML}</div>
+  </main>`;
+  return document.body.querySelector<HTMLElement>(`[data-testid="${rootTestId}"]`)!;
+}
+
+function markReady(): void {
+  document.body.setAttribute('data-app-ready', 'true');
+}
+
+// Deterministic inline-SVG authenticity seal (data-URI), styled like placeholderImage.
+function certificateSeal(): string {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+    <circle cx="100" cy="100" r="92" fill="#100f0d" stroke="#c8a96a" stroke-width="2"/>
+    <circle cx="100" cy="100" r="74" fill="none" stroke="#c8a96a" stroke-width="1" opacity="0.6"/>
+    <text x="100" y="92" font-family="Georgia, serif" font-size="42" fill="#c8a96a" text-anchor="middle">M</text>
+    <text x="100" y="128" font-family="Georgia, serif" font-size="13" fill="#e8e2d6" text-anchor="middle" letter-spacing="3">AUTHENTIC</text>
+  </svg>`;
+  return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+}
+
+async function renderCertificateWindow(id: string): Promise<void> {
+  const root = mountStandalone('certificate-view', 'Certificate of Authenticity | Maison',
+    `<h1>Certificate of Authenticity</h1><p class="muted" data-testid="loading">Loading…</p>`);
+  try {
+    const r = await api.certificate(id) as { certificate: Certificate };
+    const c = r.certificate;
+    root.innerHTML = `
+      <h1>Certificate of Authenticity</h1>
+      <img src="${certificateSeal()}" alt="Maison authenticity seal" width="160" height="160" data-testid="certificate-seal" />
+      <dl class="cert">
+        <dt>Product</dt><dd data-testid="certificate-product">${esc(c.productName)}</dd>
+        <dt>Serial No.</dt><dd data-testid="certificate-serial">${esc(c.serialNo)}</dd>
+        <dt>Issuer</dt><dd data-testid="certificate-issuer">${esc(c.issuer)}</dd>
+        <dt>Material</dt><dd data-testid="certificate-material">${esc(c.material)}</dd>
+        <dt>Issued</dt><dd data-testid="certificate-issued">${esc(c.issuedAt)}</dd>
+      </dl>`;
+  } catch (e) {
+    root.innerHTML = `
+      <h1>Certificate of Authenticity</h1>
+      <p data-testid="certificate-missing">${esc((e as Error).message)}</p>`;
+  }
+  markReady();
+}
+
+function renderSizeGuideWindow(): void {
+  mountStandalone('size-guide-view', 'Size & Fit Guide | Maison', `
+    <h1>Size &amp; Fit Guide</h1>
+    <table class="size-table">
+      <caption class="tiny">All measurements in inches</caption>
+      <thead><tr><th scope="col">Size</th><th scope="col">Chest</th><th scope="col">Waist</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">XS</th><td>34</td><td>28</td></tr>
+        <tr><th scope="row">S</th><td>36</td><td>30</td></tr>
+        <tr><th scope="row">M</th><td>38</td><td>32</td></tr>
+        <tr><th scope="row">L</th><td>40</td><td>34</td></tr>
+        <tr><th scope="row">XL</th><td>42</td><td>36</td></tr>
+      </tbody>
+    </table>
+    <p class="muted">Measurements are approximate. Our pieces fit true to size.</p>`);
+  markReady();
+}
+
+function renderShareWindow(kind: string, id: string): void {
+  const views: Record<string, { testid: string; title: string; body: string }> = {
+    link: {
+      testid: 'share-link-view', title: 'Share — Copy Link | Maison',
+      body: `<p>Copy this internal link to share the piece:</p><code data-testid="share-link-value">/product/${esc(id)}</code>`,
+    },
+    email: {
+      testid: 'share-email-view', title: 'Share — Email | Maison',
+      body: `<p>Share this piece by email.</p><p data-testid="share-email-subject">A piece from Maison</p>`,
+    },
+    preview: {
+      testid: 'share-preview-view', title: 'Share — Preview | Maison',
+      body: `<p data-testid="share-preview-body">Preview of product #${esc(id)}.</p>`,
+    },
+  };
+  const cfg = views[kind] ?? views.link;
+  mountStandalone(cfg.testid, cfg.title, `<h1>Share this piece</h1>${cfg.body}`);
+  markReady();
+}
+
+// ============================================================
 //  Boot
 // ============================================================
 async function boot(): Promise<void> {
+  const path = location.pathname;
+  const certMatch = path.match(/^\/certificate\/([^/]+)$/);
+  if (certMatch) return renderCertificateWindow(certMatch[1]);
+  if (path === '/size-guide') return renderSizeGuideWindow();
+  const shareMatch = path.match(/^\/share\/([^/]+)\/([^/]+)$/);
+  if (shareMatch) return renderShareWindow(shareMatch[2], shareMatch[1]);
+
   renderHeader();
   try { const r = await api.categories() as { categories: string[] }; state.categories = r.categories; } catch { /* ignore */ }
   await refreshSession();

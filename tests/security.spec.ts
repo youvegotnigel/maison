@@ -109,3 +109,48 @@ test.describe('Security · authorization', () => {
     expect((await res.json()).error.code).toBe('MISSING_DOB');
   });
 });
+
+test.describe('Security · certificate', () => {
+  async function login(request: import('@playwright/test').APIRequestContext, email: string) {
+    const res = await request.post(`${API}/auth/login`, { data: { email, password: PASSWORD } });
+    const { token } = await res.json();
+    return { Cookie: `maison_token=${token}` };
+  }
+
+  test('POST certificate enforces auth, role, and ownership (no IDOR)', async ({ request }) => {
+    // unauthenticated
+    expect((await request.post(`${API}/products/1/certificate`)).status()).toBe(401);
+    // buyer (wrong role)
+    const buyer = await login(request, 'buyer@maison.test');
+    expect((await request.post(`${API}/products/1/certificate`, { headers: buyer })).status()).toBe(403);
+    // non-owning seller (product 1 belongs to seller1)
+    const seller2 = await login(request, 'seller2@maison.test');
+    const idor = await request.post(`${API}/products/1/certificate`, { headers: seller2 });
+    expect(idor.status()).toBe(403);
+    expect((await idor.json()).error.code).toBe('FORBIDDEN_NOT_OWNER');
+  });
+
+  test('certificate SQL stays parameterized (injection in id yields 404, not error)', async ({ request }) => {
+    const res = await request.get(`${API}/products/${encodeURIComponent('1 OR 1=1')}/certificate`);
+    expect(res.status()).toBe(404);
+    expect((await res.json()).error.code).toBe('CERTIFICATE_NOT_FOUND');
+  });
+
+  test('certificate view output-escapes the product name (no XSS)', async ({ request, page }) => {
+    // Create a product with a markup-laden name, then issue its certificate.
+    const seller = await login(request, 'seller@maison.test');
+    const payload = '<img src=x onerror="window.__xss=1">';
+    const created = await request.post(`${API}/products`, {
+      headers: seller,
+      data: { name: payload, priceCents: 1000, stock: 1, category: 'Bags' },
+    });
+    const { product } = await created.json();
+    await request.post(`${API}/products/${product.id}/certificate`, { headers: seller });
+
+    await page.goto(`${BASE}/certificate/${product.id}`);
+    await expect(page.getByTestId('certificate-view')).toBeVisible();
+    // The payload renders inert as text, and no injected handler fired.
+    await expect(page.getByTestId('certificate-product')).toHaveText(payload);
+    expect(await page.evaluate(() => (window as unknown as { __xss?: number }).__xss)).toBeUndefined();
+  });
+});

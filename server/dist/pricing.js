@@ -50,4 +50,20 @@ export function serializeProduct(row) {
 export function money(cents) {
     return (cents / 100).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
 }
+// Lazy so it binds after the schema exists (seed() runs at boot, after import).
+let certNameStmt;
+export function serializeCertificate(row) {
+    if (!certNameStmt)
+        certNameStmt = db.prepare('SELECT name FROM products WHERE id = ?');
+    const prod = certNameStmt.get(row.product_id);
+    return {
+        id: row.id,
+        productId: row.product_id,
+        productName: prod ? prod.name : '',
+        serialNo: row.serial_no,
+        issuer: row.issuer,
+        material: row.material,
+        issuedAt: row.issued_at,
+    };
+}
 //# sourceMappingURL=pricing.js.map

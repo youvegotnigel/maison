@@ -415,3 +415,29 @@ h1, h2, h3, h4 { font-family: var(--serif); font-weight: 500; line-height: 1.1; 
 @media (max-width: 480px) {
   .dob-popup { width: calc(100vw - 40px); left: 0; }
 }
+
+/* Standalone window views (certificate / size guide / share) */
+.cert {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 8px 24px;
+  margin-top: 24px;
+  max-width: 440px;
+}
+.cert dt { color: var(--muted); font-family: var(--sans); font-size: 0.82rem; letter-spacing: 0.04em; text-transform: uppercase; }
+.cert dd { margin: 0; color: var(--cream); font-family: var(--serif); }
+.size-table {
+  border-collapse: collapse;
+  margin-top: 20px;
+  min-width: 280px;
+}
+.size-table caption { text-align: left; margin-bottom: 8px; }
+.size-table th, .size-table td {
+  border: 1px solid var(--line);
+  padding: 8px 16px;
+  text-align: left;
+  font-family: var(--sans);
+  font-size: 0.9rem;
+}
+.size-table thead th, .size-table tbody th { color: var(--gold); }
+.size-table td { color: var(--cream); }
