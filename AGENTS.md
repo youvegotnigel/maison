@@ -307,11 +307,16 @@ on a separate port (`PORT_VULN`, default 4001) via `npm run start:vuln` in the s
 5. **Rebuild the web bundle** (`npm run build:web`) and commit `web/dist/`.
 6. **Add Playwright coverage** across the relevant pillars — at minimum API + UI; add security
    (authz/IDOR) for protected routes and a11y/mobile where it applies. Reset state in `beforeEach`.
+   Coverage is **mandatory**, not optional — every new feature or bug fix lands with tests that
+   actually exercise the new behaviour (happy path **and** the failure/authz/edge cases). A change
+   that adds behaviour without tests is incomplete (see §13).
 7. **Verify before claiming done:**
    ```bash
    npm run typecheck && npm run lint && npm test
    ```
    Report the actual command output. Don't assert success without running it.
+8. **Bump the version and release** per §13 — update the version in the root `package.json` using
+   semver, then tag and push so the Docker image publishes for the new version.
 
 ---
 
@@ -340,5 +345,48 @@ on a separate port (`PORT_VULN`, default 4001) via `npm run start:vuln` in the s
 
 ---
 
+## 13. Definition of done: tests, versioning & Docker release
+
+Every feature or bug fix is **only complete** when all three of the following are done. Treat this
+as the checklist for "is this change shippable?"
+
+### 13.1 Tests (mandatory)
+- Add Playwright coverage for the new behaviour across the relevant pillars (at minimum API + UI;
+  add security for protected/owned routes, a11y + mobile where they apply). See §10 step 6.
+- Cover both the happy path **and** the failure modes (validation errors, 401/403/404, IDOR,
+  output-escaping/XSS, parameterized SQL). A green build with no new tests is **not** done.
+- Keep the full suite green: `npm run typecheck && npm run lint && npm test`.
+
+### 13.2 Version bump (semver, root `package.json`)
+Bump `version` in the **root** `package.json` according to the nature of the change:
+
+| Change type | Bump | Example |
+|---|---|---|
+| Breaking change (removed/renamed route, changed response shape, incompatible behaviour) | **major** | `1.5.0 → 2.0.0` |
+| New feature (new endpoint, new view, additive capability) | **minor** | `1.4.0 → 1.5.0` |
+| Bug fix / docs / internal refactor (no new capability, backward compatible) | **patch** | `1.5.0 → 1.5.1` |
+
+(`server/package.json` carries its own independent dependency version and is not the release
+version — the **root** `package.json` version is the one that tracks releases.)
+
+### 13.3 Docker release (tagged version)
+The image is published by `.github/workflows/docker-publish.yml`, which runs on pushes to `master`
+**and** on tags matching `v*.*.*` (emitting `{{version}}`, `{{major}}.{{minor}}`, and `latest`).
+To release the new version:
+
+```bash
+# After the version bump is merged to master:
+git checkout master && git pull
+git tag v<new-version>          # e.g. git tag v1.5.0  — MUST match package.json
+git push origin v<new-version>  # triggers the multi-arch Docker Hub publish
+```
+
+The git tag is the source of truth for the published image tag, so it **must** match the root
+`package.json` version (prefixed with `v`). Pushing the tag is an outward-facing release — only do it
+once the change is on `master` and the suite is green.
+
+---
+
 *Last reviewed against the codebase on 2026-06-07. If you change build commands, the data model,
-seed values, the API surface, or the security/vuln conventions, update this file in the same change.*
+seed values, the API surface, the security/vuln conventions, or the release/versioning process,
+update this file in the same change.*
