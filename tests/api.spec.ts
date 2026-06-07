@@ -191,3 +191,64 @@ test.describe('API · DOB validation', () => {
     expect((await me.json()).user.dateOfBirth).toBe('1990-06-10');
   });
 });
+
+test.describe('API · certificate', () => {
+  async function login(request: any, email: string) {
+    const res = await request.post(`${API}/auth/login`, { data: { email, password: PASSWORD } });
+    const { token } = await res.json();
+    return { Cookie: `maison_token=${token}` };
+  }
+
+  test('GET returns a seeded certificate for a seeded product', async ({ request }) => {
+    const res = await request.get(`${API}/products/1/certificate`);
+    expect(res.status()).toBe(200);
+    const { certificate } = await res.json();
+    expect(certificate.serialNo).toBe('MAISON-AC-0001');
+    expect(certificate.issuer).toBe('Maison Atelier');
+    expect(certificate.material).toBe('Full-grain leather'); // product 1 is a Bag
+    expect(certificate.issuedAt).toBe('2024-01-01');
+    expect(certificate.productName).toBe('Noir Saffiano Tote');
+    expect(certificate.productId).toBe(1);
+  });
+
+  test('GET returns 404 CERTIFICATE_NOT_FOUND for a product with none', async ({ request }) => {
+    // product 12 is owned by seller2 and is NOT seeded with a certificate
+    const res = await request.get(`${API}/products/12/certificate`);
+    expect(res.status()).toBe(404);
+    expect((await res.json()).error.code).toBe('CERTIFICATE_NOT_FOUND');
+  });
+
+  test('POST issues a certificate for the owning seller (201) and is idempotent', async ({ request }) => {
+    const auth = await login(request, 'seller@maison.test'); // owns product 1
+    const first = await request.post(`${API}/products/1/certificate`, { headers: auth });
+    expect(first.status()).toBe(201);
+    const a = (await first.json()).certificate;
+    expect(a.serialNo).toBe('MAISON-AC-0001');
+
+    const second = await request.post(`${API}/products/1/certificate`, { headers: auth });
+    expect(second.status()).toBe(201);
+    const b = (await second.json()).certificate;
+    expect(b.serialNo).toBe(a.serialNo);
+    expect(b.issuedAt).toBe(a.issuedAt); // deterministic, not now()
+  });
+
+  test('POST returns 401 when unauthenticated', async ({ request }) => {
+    const res = await request.post(`${API}/products/1/certificate`);
+    expect(res.status()).toBe(401);
+    expect((await res.json()).error.code).toBe('UNAUTHENTICATED');
+  });
+
+  test('POST returns 403 FORBIDDEN_ROLE for a buyer', async ({ request }) => {
+    const auth = await login(request, 'buyer@maison.test');
+    const res = await request.post(`${API}/products/1/certificate`, { headers: auth });
+    expect(res.status()).toBe(403);
+    expect((await res.json()).error.code).toBe('FORBIDDEN_ROLE');
+  });
+
+  test('POST returns 403 FORBIDDEN_NOT_OWNER for a non-owning seller (no IDOR)', async ({ request }) => {
+    const auth = await login(request, 'seller2@maison.test'); // does NOT own product 1
+    const res = await request.post(`${API}/products/1/certificate`, { headers: auth });
+    expect(res.status()).toBe(403);
+    expect((await res.json()).error.code).toBe('FORBIDDEN_NOT_OWNER');
+  });
+});
