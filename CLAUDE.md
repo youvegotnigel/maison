@@ -251,6 +251,10 @@ git push origin v1.5.0
 ```
 Publishes `1.5.0`, `1.5`, and `latest` tags on Docker Hub.
 
+Also update the static Docker Hub badge at the top of `README.md` to match the new version:
+`https://img.shields.io/badge/Docker%20Hub-v<version>-blue?logo=docker`
+(The badge is static rather than dynamic to avoid Shields.io rate-limit errors from Docker Hub's API.)
+
 ## Security Notes (Demo-Appropriate)
 
 - Passwords hashed with bcrypt
