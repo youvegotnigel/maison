@@ -395,8 +395,10 @@ once the change is on `master` and the suite is green.
 **Also update `README.md` in the same change** so its Docker version references stay in sync with
 the release: the pinned pull example under "Run locally with Docker" (`youvegotnigel/maison:<version>`)
 and the `git tag v<version>` example (plus the `<version>` / `<major>.<minor>` it says it publishes)
-in the "Releasing a new version" section. The Docker Hub badge auto-tracks the latest semver, so it
-needs no manual edit. A release where the README still shows the previous version is not done.
+in the "Releasing a new version" section. The Docker Hub badge at the top of `README.md` is **static**
+(to avoid Shields.io rate-limit errors from Docker Hub's API) — update it manually to match the new
+version: `https://img.shields.io/badge/Docker%20Hub-v<version>-blue?logo=docker`. A release where
+the README still shows the previous version is not done.
 
 ---
 
