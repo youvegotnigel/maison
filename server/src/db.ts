@@ -53,6 +53,15 @@ export interface DbOrderItem {
   unit_price_cents: number;
 }
 
+export interface DbCertificate {
+  id: number;
+  product_id: number;
+  serial_no: string;
+  issuer: string;
+  material: string;
+  issued_at: string;
+}
+
 // In-memory DB by default — fast, isolated, perfect for an AUT.
 // Set MAISON_DB_FILE to persist to disk if desired.
 const dbPath = process.env.MAISON_DB_FILE || ':memory:';
@@ -69,6 +78,7 @@ export function initSchema(): void {
     DROP TABLE IF EXISTS orders;
     DROP TABLE IF EXISTS cart_items;
     DROP TABLE IF EXISTS carts;
+    DROP TABLE IF EXISTS certificates;
     DROP TABLE IF EXISTS discounts;
     DROP TABLE IF EXISTS product_images;
     DROP TABLE IF EXISTS products;
@@ -115,6 +125,15 @@ export function initSchema(): void {
       active      INTEGER NOT NULL DEFAULT 1
     );
 
+    CREATE TABLE certificates (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      product_id  INTEGER NOT NULL UNIQUE REFERENCES products(id),
+      serial_no   TEXT NOT NULL,
+      issuer      TEXT NOT NULL,
+      material    TEXT NOT NULL,
+      issued_at   TEXT NOT NULL
+    );
+
     CREATE TABLE carts (
       id          INTEGER PRIMARY KEY AUTOINCREMENT,
       buyer_id    INTEGER NOT NULL UNIQUE REFERENCES users(id),
@@ -152,6 +171,28 @@ export function initSchema(): void {
 
 // Deterministic seed so automation can assert on known data.
 const SEED_PASSWORD = 'Password123!';
+
+// Deterministic certificate-of-authenticity values (asserted by tests).
+export const CERTIFICATE_ISSUER = 'Maison Atelier';
+export const CERTIFICATE_ISSUED_AT = '2024-01-01';
+
+export function certificateSerial(productId: number): string {
+  return 'MAISON-AC-' + String(productId).padStart(4, '0');
+}
+
+const CERTIFICATE_MATERIALS: Record<string, string> = {
+  Bags: 'Full-grain leather',
+  Watches: 'Stainless steel & sapphire',
+  Jewellery: '18k gold',
+  Footwear: 'Calfskin leather',
+  Fragrance: 'Crystal flacon',
+  Apparel: 'Natural fibre',
+  Accessories: 'Mixed materials',
+};
+
+export function materialForCategory(category: string): string {
+  return CERTIFICATE_MATERIALS[category] ?? 'Atelier-grade materials';
+}
 
 const SEED_PRODUCTS = [
   { name: 'Noir Saffiano Tote', category: 'Bags', price: 285000, stock: 8, hue: '#1f1b18',
@@ -229,6 +270,9 @@ export function seed(): void {
   const insDiscount = db.prepare(
     'INSERT INTO discounts (product_id, type, value, active) VALUES (?, ?, ?, 1)'
   );
+  const insCert = db.prepare(
+    'INSERT INTO certificates (product_id, serial_no, issuer, material, issued_at) VALUES (?, ?, ?, ?, ?)'
+  );
 
   SEED_PRODUCTS.forEach((p, i) => {
     const owner = i >= 11 ? seller2 : seller1; // products 1-11 -> seller1, 12+ -> seller2
@@ -237,6 +281,10 @@ export function seed(): void {
     // Give two products a seeded discount so the catalogue shows badges out of the box.
     if (i === 0) insDiscount.run(pid, 'percentage', 15);
     if (i === 4) insDiscount.run(pid, 'fixed', 20000);
+    // Certificate for every product owned by the demo seller (seller1, indexes 0–10).
+    if (owner === seller1) {
+      insCert.run(pid, certificateSerial(pid), CERTIFICATE_ISSUER, materialForCategory(p.category), CERTIFICATE_ISSUED_AT);
+    }
   });
 }
 

@@ -1,4 +1,4 @@
-import { db, type DbProduct } from './db.js';
+import { db, type DbProduct, type DbCertificate } from './db.js';
 import type { StatementSync } from 'node:sqlite';
 
 export interface Discount {
@@ -23,6 +23,16 @@ export interface SerializedProduct {
   published: boolean;
   images: string[];
   image: string | null;
+}
+
+export interface SerializedCertificate {
+  id: number;
+  productId: number;
+  productName: string;
+  serialNo: string;
+  issuer: string;
+  material: string;
+  issuedAt: string;
 }
 
 // Compute the effective price given a base price and an optional discount row.
@@ -79,4 +89,21 @@ export function serializeProduct(row: DbProduct): SerializedProduct {
 
 export function money(cents: number): string {
   return (cents / 100).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+}
+
+// Lazy so it binds after the schema exists (seed() runs at boot, after import).
+let certNameStmt: StatementSync | undefined;
+
+export function serializeCertificate(row: DbCertificate): SerializedCertificate {
+  if (!certNameStmt) certNameStmt = db.prepare('SELECT name FROM products WHERE id = ?');
+  const prod = certNameStmt.get(row.product_id) as { name: string } | undefined;
+  return {
+    id: row.id,
+    productId: row.product_id,
+    productName: prod ? prod.name : '',
+    serialNo: row.serial_no,
+    issuer: row.issuer,
+    material: row.material,
+    issuedAt: row.issued_at,
+  };
 }

@@ -1,10 +1,10 @@
 import { Router } from 'express';
 import type { Request, Response } from 'express';
 import { db } from '../db.js';
-import type { DbProduct } from '../db.js';
-import { serializeProduct } from '../pricing.js';
+import type { DbProduct, DbCertificate } from '../db.js';
+import { serializeProduct, serializeCertificate } from '../pricing.js';
 import { fail, requireRole } from '../auth.js';
-import { placeholderImage } from '../db.js';
+import { placeholderImage, certificateSerial, materialForCategory, CERTIFICATE_ISSUER, CERTIFICATE_ISSUED_AT } from '../db.js';
 
 const router = Router();
 
@@ -39,6 +39,14 @@ router.get('/:id', (req, res) => {
   const row = db.prepare('SELECT * FROM products WHERE id = ?').get(Number(req.params.id)) as unknown as DbProduct | undefined;
   if (!row) return fail(res, 404, 'PRODUCT_NOT_FOUND', 'That product does not exist.');
   res.json({ product: serializeProduct(row) });
+});
+
+// Public: certificate of authenticity for a product (or 404 if none).
+router.get('/:id/certificate', (req, res) => {
+  const row = db.prepare('SELECT * FROM certificates WHERE product_id = ?')
+    .get(Number(req.params.id)) as unknown as DbCertificate | undefined;
+  if (!row) return fail(res, 404, 'CERTIFICATE_NOT_FOUND', 'No certificate exists for that product.');
+  res.json({ certificate: serializeCertificate(row) });
 });
 
 // ---- Seller-owned operations ----
@@ -153,6 +161,24 @@ router.delete('/:id/discount', requireRole('seller'), (req, res) => {
   db.prepare('DELETE FROM discounts WHERE product_id = ?').run(row.id);
   const updated = db.prepare('SELECT * FROM products WHERE id = ?').get(row.id) as unknown as DbProduct;
   res.json({ product: serializeProduct(updated) });
+});
+
+// Protected: (re)issue a certificate. Seller-only, owner-only, idempotent.
+router.post('/:id/certificate', requireRole('seller'), (req, res) => {
+  const product = db.prepare('SELECT * FROM products WHERE id = ?')
+    .get(Number(req.params.id)) as unknown as DbProduct | undefined;
+  if (!product) return fail(res, 404, 'PRODUCT_NOT_FOUND', 'That product does not exist.');
+  if (product.seller_id !== req.user!.sub) {
+    return fail(res, 403, 'FORBIDDEN_NOT_OWNER', 'You can only issue certificates for products you own.');
+  }
+  const serial = certificateSerial(product.id);
+  const material = materialForCategory(product.category);
+  db.prepare('DELETE FROM certificates WHERE product_id = ?').run(product.id);
+  db.prepare('INSERT INTO certificates (product_id, serial_no, issuer, material, issued_at) VALUES (?, ?, ?, ?, ?)')
+    .run(product.id, serial, CERTIFICATE_ISSUER, material, CERTIFICATE_ISSUED_AT);
+  const row = db.prepare('SELECT * FROM certificates WHERE product_id = ?')
+    .get(product.id) as unknown as DbCertificate;
+  res.status(201).json({ certificate: serializeCertificate(row) });
 });
 
 export default router;
