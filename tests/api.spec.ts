@@ -193,7 +193,7 @@ test.describe('API · DOB validation', () => {
 });
 
 test.describe('API · certificate', () => {
-  async function login(request: any, email: string) {
+  async function login(request: import('@playwright/test').APIRequestContext, email: string) {
     const res = await request.post(`${API}/auth/login`, { data: { email, password: PASSWORD } });
     const { token } = await res.json();
     return { Cookie: `maison_token=${token}` };

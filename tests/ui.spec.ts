@@ -195,3 +195,63 @@ test.describe('UI · age gate', () => {
     await expect(page.getByTestId('dob-picker')).toHaveAttribute('aria-hidden', 'true');
   });
 });
+
+test.describe('UI · multi-window', () => {
+  test('certificate link opens a new tab with the certificate view', async ({ page, context }) => {
+    await page.goto(BASE + '#/product/1');
+    await expect(page.getByTestId('product-detail')).toBeVisible();
+
+    const [tab] = await Promise.all([
+      context.waitForEvent('page'),
+      page.getByTestId('certificate-link').click(),
+    ]);
+    await expect(tab.getByTestId('certificate-view')).toBeVisible();
+    await expect(tab).toHaveTitle('Certificate of Authenticity | Maison');
+    await expect(tab.getByTestId('certificate-serial')).toHaveText('MAISON-AC-0001');
+    await expect(tab.getByTestId('certificate-product')).toHaveText('Noir Saffiano Tote');
+  });
+
+  test('size & fit guide opens a popup window', async ({ page }) => {
+    await page.goto(BASE + '#/product/1');
+    await expect(page.getByTestId('product-detail')).toBeVisible();
+
+    const [popup] = await Promise.all([
+      page.waitForEvent('popup'),
+      page.getByTestId('size-guide-button').click(),
+    ]);
+    await expect(popup.getByTestId('size-guide-view')).toBeVisible();
+    await expect(popup).toHaveTitle('Size & Fit Guide | Maison');
+  });
+
+  test('share opens exactly three popup windows from one click', async ({ page }) => {
+    await page.goto(BASE + '#/product/1');
+    await expect(page.getByTestId('product-detail')).toBeVisible();
+
+    // Collect popups as they open (concurrent waitForEvent calls would race
+    // on the same event), then assert exactly three from the single click.
+    const popups: import('@playwright/test').Page[] = [];
+    page.on('popup', p => popups.push(p));
+
+    await page.getByTestId('share-all-button').click();
+    await expect.poll(() => popups.length).toBe(3);
+
+    // Wait for each window to finish booting, then collect its title.
+    const titles: string[] = [];
+    for (const w of popups) {
+      await expect(w.locator('body')).toHaveAttribute('data-app-ready', 'true');
+      await expect(w.locator(
+        '[data-testid="share-link-view"], [data-testid="share-email-view"], [data-testid="share-preview-view"]'
+      )).toHaveCount(1);
+      titles.push(await w.title());
+    }
+
+    expect(new Set(titles)).toEqual(new Set([
+      'Share — Copy Link | Maison',
+      'Share — Email | Maison',
+      'Share — Preview | Maison',
+    ]));
+
+    // Exactly three — no fourth window snuck in.
+    expect(popups.length).toBe(3);
+  });
+});

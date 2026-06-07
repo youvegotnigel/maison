@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-// import AxeBuilder from '@axe-core/playwright'; // uncomment for the a11y test
+import AxeBuilder from '@axe-core/playwright';
 
 const BASE = process.env.MAISON_URL || 'http://localhost:4000';
 const API = BASE + '/api/v1';
@@ -71,5 +71,23 @@ test.describe('Accessibility · DOB picker', () => {
     // Check day button labels
     await expect(page.getByTestId('dob-day-1')).toHaveAttribute('aria-label', 'Day 1');
     await expect(page.getByTestId('dob-day-15')).toHaveAttribute('aria-label', 'Day 15');
+  });
+});
+
+test.describe('Accessibility · standalone windows', () => {
+  test('certificate view passes axe-core', async ({ page }) => {
+    await page.goto(BASE + '/certificate/1');
+    await expect(page.locator('body')).toHaveAttribute('data-app-ready', 'true');
+    await expect(page.getByTestId('certificate-view')).toBeVisible();
+    const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
+    expect(results.violations).toEqual([]);
+  });
+
+  test('size-guide view passes axe-core', async ({ page }) => {
+    await page.goto(BASE + '/size-guide');
+    await expect(page.locator('body')).toHaveAttribute('data-app-ready', 'true');
+    await expect(page.getByTestId('size-guide-view')).toBeVisible();
+    const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
+    expect(results.violations).toEqual([]);
   });
 });
