@@ -173,6 +173,8 @@ run `npm run build:web` and commit the `web/dist/` output (see §9 gotchas).
 | GET | `/products` | – | catalogue; query: `q, category, sort, minPrice, maxPrice` |
 | GET | `/products/categories` | – | distinct published categories |
 | GET | `/products/:id` | – | single product |
+| GET | `/products/:id/certificate` | – | certificate of authenticity, or 404 `CERTIFICATE_NOT_FOUND` |
+| POST | `/products/:id/certificate` | seller (owner) | (re)issue certificate, idempotent; 403 `FORBIDDEN_NOT_OWNER` |
 | GET | `/products/seller/mine` | seller | seller's own listings |
 | POST | `/products` | seller | create listing |
 | PATCH | `/products/:id` | seller (owner) | update fields |
@@ -199,8 +201,8 @@ run `npm run build:web` and commit the `web/dist/` output (see §9 gotchas).
 
 ## 6. Data model & seed (`server/src/db.ts`)
 
-Tables: `users`, `products`, `product_images`, `discounts`, `carts`, `cart_items`, `orders`,
-`order_items`. Foreign keys ON, WAL journal mode. **Money is always stored as integer cents**
+Tables: `users`, `products`, `product_images`, `discounts`, `certificates`, `carts`, `cart_items`,
+`orders`, `order_items`. Foreign keys ON, WAL journal mode. **Money is always stored as integer cents**
 (`price_cents`, `total_cents`, `unit_price_cents`) — never floats.
 
 DB location: in-memory (`:memory:`) by default; set `MAISON_DB_FILE` to persist to disk.
@@ -214,6 +216,10 @@ DB location: in-memory (`:memory:`) by default; set `MAISON_DB_FILE` to persist 
 - **22 seed products.** Product index 0 ("Noir Saffiano Tote") has a 15% discount; index 4
   ("Onyx Leather Derby") has a 20000-cent fixed discount. `api.spec.ts` asserts these exact numbers
   (e.g. tote `effectiveCents === 242250`).
+- **Certificates** are seeded for every product owned by `seller@maison.test` (seller1, products
+  1–11); products owned by seller2 (12+) have none (drives the GET 404). Fields are deterministic
+  and product-derived: `serial_no = MAISON-AC-<id padded to 4>`, `issuer = 'Maison Atelier'`,
+  `material` from category, `issued_at = '2024-01-01'`. POST re-issue is idempotent (not `now()`).
 
 Images: `placeholderImage(label, hue)` returns an inline SVG data-URI — no external hosting.
 
