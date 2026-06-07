@@ -291,6 +291,13 @@ on a separate port (`PORT_VULN`, default 4001) via `npm run start:vuln` in the s
   deps. Add backend deps in `server/`, not root.
 - **a11y axe wiring is present but commented out** in `a11y.spec.ts`; `@axe-core/playwright` is
   installed. Uncomment to run full WCAG scans.
+- **Not every CI job installs a browser.** The `test-ui`, `test-mobile`, `test-a11y`, and
+  `test-security` jobs run `npx playwright install --with-deps chromium`; **`test-api` does not**
+  (its pillar is purely `request`-based). If you add a browser-based (`page`) test to `api.spec.ts`,
+  add the "Install Playwright browsers" step to the `test-api` job or CI fails with *"Executable
+  doesn't exist … chrome-headless-shell"* — a failure you won't see locally if browsers are already
+  installed. (This bit the security pillar when the certificate XSS test introduced the first
+  `page`-based security test.)
 
 ---
 
