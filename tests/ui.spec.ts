@@ -272,3 +272,18 @@ test.describe('UI · window forms · certificate', () => {
     await expect(page.getByTestId('certificate-verified')).toBeVisible();
   });
 });
+
+test.describe('UI · window forms · size guide', () => {
+  test('recommends a size from a chest measurement and rejects invalid input', async ({ page }) => {
+    await page.goto(BASE + '/size-guide');
+    await expect(page.getByTestId('size-guide-view')).toBeVisible();
+
+    await page.getByTestId('size-chest-input').fill('38');
+    await page.getByTestId('size-find-button').click();
+    await expect(page.getByTestId('size-recommendation')).toHaveText('Recommended size: M');
+
+    await page.getByTestId('size-chest-input').fill('');
+    await page.getByTestId('size-find-button').click();
+    await expect(page.getByTestId('size-find-error')).toBeVisible();
+  });
+});

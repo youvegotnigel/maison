@@ -1055,8 +1055,17 @@ async function renderCertificateWindow(id: string): Promise<void> {
   markReady();
 }
 
+// Deterministic chest(inches) → size band, matching the size-table rows.
+function recommendSize(chestInches: number): string {
+  if (chestInches <= 34) return 'XS';
+  if (chestInches <= 36) return 'S';
+  if (chestInches <= 38) return 'M';
+  if (chestInches <= 40) return 'L';
+  return 'XL';
+}
+
 function renderSizeGuideWindow(): void {
-  mountStandalone('size-guide-view', 'Size & Fit Guide | Maison', `
+  const root = mountStandalone('size-guide-view', 'Size & Fit Guide | Maison', `
     <h1>Size &amp; Fit Guide</h1>
     <table class="size-table">
       <caption class="tiny">All measurements in inches</caption>
@@ -1069,7 +1078,23 @@ function renderSizeGuideWindow(): void {
         <tr><th scope="row">XL</th><td>42</td><td>36</td></tr>
       </tbody>
     </table>
-    <p class="muted">Measurements are approximate. Our pieces fit true to size.</p>`);
+    <p class="muted">Measurements are approximate. Our pieces fit true to size.</p>
+    <form class="window-form" data-testid="size-find-form" novalidate>
+      <label for="size-chest">Your chest measurement (inches)</label>
+      <input id="size-chest" type="number" min="0" step="1" data-testid="size-chest-input" autocomplete="off" />
+      <button type="submit" class="btn btn--sm" data-testid="size-find-button">Find my size</button>
+    </form>
+    <div class="window-result" aria-live="polite" data-testid="size-result"></div>`);
+  const form = root.querySelector<HTMLFormElement>('[data-testid="size-find-form"]')!;
+  const out = root.querySelector<HTMLElement>('[data-testid="size-result"]')!;
+  form.onsubmit = (e) => {
+    e.preventDefault();
+    const raw = root.querySelector<HTMLInputElement>('[data-testid="size-chest-input"]')!.value.trim();
+    const n = Number(raw);
+    out.innerHTML = raw !== '' && Number.isFinite(n)
+      ? `<p class="ok" data-testid="size-recommendation">Recommended size: ${esc(recommendSize(n))}</p>`
+      : `<p class="err" data-testid="size-find-error">Enter a chest measurement in inches.</p>`;
+  };
   markReady();
 }
 
