@@ -441,3 +441,33 @@ h1, h2, h3, h4 { font-family: var(--serif); font-weight: 500; line-height: 1.1; 
 }
 .size-table thead th, .size-table tbody th { color: var(--gold); }
 .size-table td { color: var(--cream); }
+
+/* Interactive window forms (certificate / size guide / share) */
+.window-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 12px;
+  margin-top: 28px;
+  max-width: 440px;
+}
+.window-form label {
+  flex: 1 1 100%;
+  font-family: var(--sans);
+  font-size: 0.82rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.window-form input {
+  flex: 1 1 200px;
+  padding: 10px 12px;
+  background: var(--ink-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--cream);
+  font-family: var(--sans);
+}
+.window-result { margin-top: 16px; min-height: 1.2em; }
+.window-result .ok { color: var(--gold); }
+.window-result .err { color: var(--danger); }
