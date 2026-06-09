@@ -91,3 +91,21 @@ test.describe('Accessibility · standalone windows', () => {
     expect(results.violations).toEqual([]);
   });
 });
+
+test.describe('Accessibility · window forms', () => {
+  test('certificate verify input is label-associated and axe-clean', async ({ page }) => {
+    await page.goto(BASE + '/certificate/1');
+    await expect(page.getByTestId('certificate-view')).toBeVisible();
+    await expect(page.locator('label[for="cert-serial"]')).toBeAttached();
+    const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
+    expect(results.violations).toEqual([]);
+  });
+
+  test('size-guide chest input is label-associated and axe-clean', async ({ page }) => {
+    await page.goto(BASE + '/size-guide');
+    await expect(page.getByTestId('size-guide-view')).toBeVisible();
+    await expect(page.locator('label[for="size-chest"]')).toBeAttached();
+    const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
+    expect(results.violations).toEqual([]);
+  });
+});
