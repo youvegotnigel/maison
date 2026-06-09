@@ -154,3 +154,25 @@ test.describe('Security · certificate', () => {
     expect(await page.evaluate(() => (window as unknown as { __xss?: number }).__xss)).toBeUndefined();
   });
 });
+
+test.describe('Security · window forms', () => {
+  test('share-preview message renders markup inert (no XSS)', async ({ page }) => {
+    await page.goto(BASE + '/share/1/preview');
+    await expect(page.getByTestId('share-preview-view')).toBeVisible();
+    const payload = '<img src=x onerror="window.__xss=1">';
+    await page.getByTestId('share-preview-message-input').fill(payload);
+    await page.getByTestId('share-preview-apply-button').click();
+    await expect(page.getByTestId('share-preview-message')).toHaveText('Your message: ' + payload);
+    expect(await page.evaluate(() => (window as unknown as { __xss?: number }).__xss)).toBeUndefined();
+  });
+
+  test('share-link ref tag renders inert (no XSS)', async ({ page }) => {
+    await page.goto(BASE + '/share/1/link');
+    await expect(page.getByTestId('share-link-view')).toBeVisible();
+    const payload = '"><img src=x onerror="window.__xss2=1">';
+    await page.getByTestId('share-link-ref-input').fill(payload);
+    await page.getByTestId('share-link-build-button').click();
+    await expect(page.getByTestId('share-link-result')).toHaveText('/product/1?ref=' + payload);
+    expect(await page.evaluate(() => (window as unknown as { __xss2?: number }).__xss2)).toBeUndefined();
+  });
+});

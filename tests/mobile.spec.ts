@@ -181,3 +181,17 @@ test.describe('Mobile · certificate', () => {
     await expect(tab).toHaveTitle('Certificate of Authenticity | Maison');
   });
 });
+
+test.describe('Mobile · window forms', () => {
+  test.use({ viewport: { width: 375, height: 812 } });
+
+  test('certificate verify form is usable at mobile width', async ({ page }) => {
+    await page.goto(BASE + '/certificate/1');
+    await expect(page.getByTestId('certificate-view')).toBeVisible();
+    await page.getByTestId('certificate-serial-input').fill('MAISON-AC-0001');
+    await page.getByTestId('certificate-verify-button').click();
+    await expect(page.getByTestId('certificate-verified')).toBeVisible();
+    const scrollWidth = await page.evaluate(() => document.body.scrollWidth);
+    expect(scrollWidth).toBeLessThanOrEqual(375);
+  });
+});

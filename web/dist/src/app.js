@@ -1002,7 +1002,22 @@ async function renderCertificateWindow(id) {
         <dt>Issuer</dt><dd data-testid="certificate-issuer">${esc(c.issuer)}</dd>
         <dt>Material</dt><dd data-testid="certificate-material">${esc(c.material)}</dd>
         <dt>Issued</dt><dd data-testid="certificate-issued">${esc(c.issuedAt)}</dd>
-      </dl>`;
+      </dl>
+      <form class="window-form" data-testid="certificate-verify-form" novalidate>
+        <label for="cert-serial">Verify a serial number</label>
+        <input id="cert-serial" type="text" data-testid="certificate-serial-input" autocomplete="off" />
+        <button type="submit" class="btn btn--sm" data-testid="certificate-verify-button">Verify</button>
+      </form>
+      <div class="window-result" aria-live="polite" data-testid="certificate-result"></div>`;
+        const form = root.querySelector('[data-testid="certificate-verify-form"]');
+        const out = root.querySelector('[data-testid="certificate-result"]');
+        form.onsubmit = (e) => {
+            e.preventDefault();
+            const entered = root.querySelector('[data-testid="certificate-serial-input"]').value.trim();
+            out.innerHTML = entered === c.serialNo
+                ? `<p class="ok" data-testid="certificate-verified">✓ Verified authentic — ${esc(c.serialNo)}</p>`
+                : `<p class="err" data-testid="certificate-verify-error">Serial does not match this certificate.</p>`;
+        };
     }
     catch (e) {
         root.innerHTML = `
@@ -1011,8 +1026,20 @@ async function renderCertificateWindow(id) {
     }
     markReady();
 }
+// Deterministic chest(inches) → size band, matching the size-table rows.
+function recommendSize(chestInches) {
+    if (chestInches <= 34)
+        return 'XS';
+    if (chestInches <= 36)
+        return 'S';
+    if (chestInches <= 38)
+        return 'M';
+    if (chestInches <= 40)
+        return 'L';
+    return 'XL';
+}
 function renderSizeGuideWindow() {
-    mountStandalone('size-guide-view', 'Size & Fit Guide | Maison', `
+    const root = mountStandalone('size-guide-view', 'Size & Fit Guide | Maison', `
     <h1>Size &amp; Fit Guide</h1>
     <table class="size-table">
       <caption class="tiny">All measurements in inches</caption>
@@ -1025,26 +1052,96 @@ function renderSizeGuideWindow() {
         <tr><th scope="row">XL</th><td>42</td><td>36</td></tr>
       </tbody>
     </table>
-    <p class="muted">Measurements are approximate. Our pieces fit true to size.</p>`);
+    <p class="muted">Measurements are approximate. Our pieces fit true to size.</p>
+    <form class="window-form" data-testid="size-find-form" novalidate>
+      <label for="size-chest">Your chest measurement (inches)</label>
+      <input id="size-chest" type="number" min="0" step="1" data-testid="size-chest-input" autocomplete="off" />
+      <button type="submit" class="btn btn--sm" data-testid="size-find-button">Find my size</button>
+    </form>
+    <div class="window-result" aria-live="polite" data-testid="size-result"></div>`);
+    const form = root.querySelector('[data-testid="size-find-form"]');
+    const out = root.querySelector('[data-testid="size-result"]');
+    form.onsubmit = (e) => {
+        e.preventDefault();
+        const raw = root.querySelector('[data-testid="size-chest-input"]').value.trim();
+        const n = Number(raw);
+        out.innerHTML = raw !== '' && Number.isFinite(n)
+            ? `<p class="ok" data-testid="size-recommendation">Recommended size: ${esc(recommendSize(n))}</p>`
+            : `<p class="err" data-testid="size-find-error">Enter a chest measurement in inches.</p>`;
+    };
     markReady();
 }
 function renderShareWindow(kind, id) {
     const views = {
         link: {
             testid: 'share-link-view', title: 'Share — Copy Link | Maison',
-            body: `<p>Copy this internal link to share the piece:</p><code data-testid="share-link-value">/product/${esc(id)}</code>`,
+            body: `
+        <p>Copy this internal link to share the piece:</p>
+        <code data-testid="share-link-value">/product/${esc(id)}</code>
+        <form class="window-form" data-testid="share-link-form" novalidate>
+          <label for="share-ref">Add a reference tag</label>
+          <input id="share-ref" type="text" data-testid="share-link-ref-input" autocomplete="off" />
+          <button type="submit" class="btn btn--sm" data-testid="share-link-build-button">Build link</button>
+        </form>
+        <div class="window-result" aria-live="polite" data-testid="share-link-out"></div>`,
+            wire: (root) => {
+                const form = root.querySelector('[data-testid="share-link-form"]');
+                const out = root.querySelector('[data-testid="share-link-out"]');
+                form.onsubmit = (e) => {
+                    e.preventDefault();
+                    const tag = root.querySelector('[data-testid="share-link-ref-input"]').value.trim();
+                    const link = tag ? `/product/${id}?ref=${tag}` : `/product/${id}`;
+                    out.innerHTML = `<code data-testid="share-link-result">${esc(link)}</code>`;
+                };
+            },
         },
         email: {
             testid: 'share-email-view', title: 'Share — Email | Maison',
-            body: `<p>Share this piece by email.</p><p data-testid="share-email-subject">A piece from Maison</p>`,
+            body: `
+        <p>Share this piece by email.</p>
+        <p data-testid="share-email-subject">A piece from Maison</p>
+        <form class="window-form" data-testid="share-email-form" novalidate>
+          <label for="share-email">Recipient email</label>
+          <input id="share-email" type="text" data-testid="share-email-input" autocomplete="off" />
+          <button type="submit" class="btn btn--sm" data-testid="share-email-send-button">Send</button>
+        </form>
+        <div class="window-result" aria-live="polite" data-testid="share-email-out"></div>`,
+            wire: (root) => {
+                const form = root.querySelector('[data-testid="share-email-form"]');
+                const out = root.querySelector('[data-testid="share-email-out"]');
+                form.onsubmit = (e) => {
+                    e.preventDefault();
+                    const email = root.querySelector('[data-testid="share-email-input"]').value.trim();
+                    out.innerHTML = email.length > 0 && email.includes('@')
+                        ? `<p class="ok" data-testid="share-email-sent">Shared with ${esc(email)}</p>`
+                        : `<p class="err" data-testid="share-email-error">Enter a valid email address.</p>`;
+                };
+            },
         },
         preview: {
             testid: 'share-preview-view', title: 'Share — Preview | Maison',
-            body: `<p data-testid="share-preview-body">Preview of product #${esc(id)}.</p>`,
+            body: `
+        <p data-testid="share-preview-body">Preview of product #${esc(id)}.</p>
+        <form class="window-form" data-testid="share-preview-form" novalidate>
+          <label for="share-msg">Add a gift message</label>
+          <input id="share-msg" type="text" data-testid="share-preview-message-input" autocomplete="off" />
+          <button type="submit" class="btn btn--sm" data-testid="share-preview-apply-button">Add message</button>
+        </form>
+        <div class="window-result" aria-live="polite" data-testid="share-preview-out"></div>`,
+            wire: (root) => {
+                const form = root.querySelector('[data-testid="share-preview-form"]');
+                const out = root.querySelector('[data-testid="share-preview-out"]');
+                form.onsubmit = (e) => {
+                    e.preventDefault();
+                    const msg = root.querySelector('[data-testid="share-preview-message-input"]').value.trim();
+                    out.innerHTML = `<p data-testid="share-preview-message">Your message: ${esc(msg)}</p>`;
+                };
+            },
         },
     };
     const cfg = views[kind] ?? views.link;
-    mountStandalone(cfg.testid, cfg.title, `<h1>Share this piece</h1>${cfg.body}`);
+    const root = mountStandalone(cfg.testid, cfg.title, `<h1>Share this piece</h1>${cfg.body}`);
+    cfg.wire(root);
     markReady();
 }
 // ============================================================

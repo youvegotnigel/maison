@@ -35,7 +35,7 @@ If you'd rather not install Node, you can run the entire app inside Docker. One 
 ```bash
 docker run --rm -p 4000:4000 youvegotnigel/maison:latest
 # or pin a specific release:
-docker run --rm -p 4000:4000 youvegotnigel/maison:1.5.0
+docker run --rm -p 4000:4000 youvegotnigel/maison:1.6.0
 ```
 
 **Option B — build from source:**
@@ -92,14 +92,14 @@ The workflow builds for both `linux/amd64` and `linux/arm64` (Apple Silicon), so
 ### Releasing a new version
 
 Pushes to `master` automatically keep the `latest` tag up to date. To publish a numbered release,
-tag the version (must match the `version` in the root `package.json` — currently **1.5.0**):
+tag the version (must match the `version` in the root `package.json` — currently **1.6.0**):
 
 ```bash
-git tag v1.5.0
-git push origin v1.5.0
+git tag v1.6.0
+git push origin v1.6.0
 ```
 
-This publishes `1.5.0`, `1.5`, and `latest` on Docker Hub automatically. Use [semantic versioning](https://semver.org):
+This publishes `1.6.0`, `1.6`, and `latest` on Docker Hub automatically. Use [semantic versioning](https://semver.org):
 
 | Type of change | Part to bump | Example |
 |----------------|-------------|---------|
