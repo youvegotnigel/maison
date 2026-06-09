@@ -1099,22 +1099,79 @@ function renderSizeGuideWindow(): void {
 }
 
 function renderShareWindow(kind: string, id: string): void {
-  const views: Record<string, { testid: string; title: string; body: string }> = {
+  const views: Record<string, {
+    testid: string; title: string; body: string;
+    wire: (root: HTMLElement) => void;
+  }> = {
     link: {
       testid: 'share-link-view', title: 'Share — Copy Link | Maison',
-      body: `<p>Copy this internal link to share the piece:</p><code data-testid="share-link-value">/product/${esc(id)}</code>`,
+      body: `
+        <p>Copy this internal link to share the piece:</p>
+        <code data-testid="share-link-value">/product/${esc(id)}</code>
+        <form class="window-form" data-testid="share-link-form" novalidate>
+          <label for="share-ref">Add a reference tag</label>
+          <input id="share-ref" type="text" data-testid="share-link-ref-input" autocomplete="off" />
+          <button type="submit" class="btn btn--sm" data-testid="share-link-build-button">Build link</button>
+        </form>
+        <div class="window-result" aria-live="polite" data-testid="share-link-out"></div>`,
+      wire: (root) => {
+        const form = root.querySelector<HTMLFormElement>('[data-testid="share-link-form"]')!;
+        const out = root.querySelector<HTMLElement>('[data-testid="share-link-out"]')!;
+        form.onsubmit = (e) => {
+          e.preventDefault();
+          const tag = root.querySelector<HTMLInputElement>('[data-testid="share-link-ref-input"]')!.value.trim();
+          const link = tag ? `/product/${id}?ref=${tag}` : `/product/${id}`;
+          out.innerHTML = `<code data-testid="share-link-result">${esc(link)}</code>`;
+        };
+      },
     },
     email: {
       testid: 'share-email-view', title: 'Share — Email | Maison',
-      body: `<p>Share this piece by email.</p><p data-testid="share-email-subject">A piece from Maison</p>`,
+      body: `
+        <p>Share this piece by email.</p>
+        <p data-testid="share-email-subject">A piece from Maison</p>
+        <form class="window-form" data-testid="share-email-form" novalidate>
+          <label for="share-email">Recipient email</label>
+          <input id="share-email" type="text" data-testid="share-email-input" autocomplete="off" />
+          <button type="submit" class="btn btn--sm" data-testid="share-email-send-button">Send</button>
+        </form>
+        <div class="window-result" aria-live="polite" data-testid="share-email-out"></div>`,
+      wire: (root) => {
+        const form = root.querySelector<HTMLFormElement>('[data-testid="share-email-form"]')!;
+        const out = root.querySelector<HTMLElement>('[data-testid="share-email-out"]')!;
+        form.onsubmit = (e) => {
+          e.preventDefault();
+          const email = root.querySelector<HTMLInputElement>('[data-testid="share-email-input"]')!.value.trim();
+          out.innerHTML = email.length > 0 && email.includes('@')
+            ? `<p class="ok" data-testid="share-email-sent">Shared with ${esc(email)}</p>`
+            : `<p class="err" data-testid="share-email-error">Enter a valid email address.</p>`;
+        };
+      },
     },
     preview: {
       testid: 'share-preview-view', title: 'Share — Preview | Maison',
-      body: `<p data-testid="share-preview-body">Preview of product #${esc(id)}.</p>`,
+      body: `
+        <p data-testid="share-preview-body">Preview of product #${esc(id)}.</p>
+        <form class="window-form" data-testid="share-preview-form" novalidate>
+          <label for="share-msg">Add a gift message</label>
+          <input id="share-msg" type="text" data-testid="share-preview-message-input" autocomplete="off" />
+          <button type="submit" class="btn btn--sm" data-testid="share-preview-apply-button">Add message</button>
+        </form>
+        <div class="window-result" aria-live="polite" data-testid="share-preview-out"></div>`,
+      wire: (root) => {
+        const form = root.querySelector<HTMLFormElement>('[data-testid="share-preview-form"]')!;
+        const out = root.querySelector<HTMLElement>('[data-testid="share-preview-out"]')!;
+        form.onsubmit = (e) => {
+          e.preventDefault();
+          const msg = root.querySelector<HTMLInputElement>('[data-testid="share-preview-message-input"]')!.value.trim();
+          out.innerHTML = `<p data-testid="share-preview-message">Your message: ${esc(msg)}</p>`;
+        };
+      },
     },
   };
   const cfg = views[kind] ?? views.link;
-  mountStandalone(cfg.testid, cfg.title, `<h1>Share this piece</h1>${cfg.body}`);
+  const root = mountStandalone(cfg.testid, cfg.title, `<h1>Share this piece</h1>${cfg.body}`);
+  cfg.wire(root);
   markReady();
 }
 

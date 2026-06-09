@@ -287,3 +287,34 @@ test.describe('UI · window forms · size guide', () => {
     await expect(page.getByTestId('size-find-error')).toBeVisible();
   });
 });
+
+test.describe('UI · window forms · share', () => {
+  test('share-link builds an internal link from a ref tag', async ({ page }) => {
+    await page.goto(BASE + '/share/1/link');
+    await expect(page.getByTestId('share-link-view')).toBeVisible();
+    await page.getByTestId('share-link-ref-input').fill('spring');
+    await page.getByTestId('share-link-build-button').click();
+    await expect(page.getByTestId('share-link-result')).toHaveText('/product/1?ref=spring');
+  });
+
+  test('share-email validates and confirms', async ({ page }) => {
+    await page.goto(BASE + '/share/1/email');
+    await expect(page.getByTestId('share-email-view')).toBeVisible();
+
+    await page.getByTestId('share-email-input').fill('not-an-email');
+    await page.getByTestId('share-email-send-button').click();
+    await expect(page.getByTestId('share-email-error')).toBeVisible();
+
+    await page.getByTestId('share-email-input').fill('friend@example.com');
+    await page.getByTestId('share-email-send-button').click();
+    await expect(page.getByTestId('share-email-sent')).toHaveText('Shared with friend@example.com');
+  });
+
+  test('share-preview echoes a gift message', async ({ page }) => {
+    await page.goto(BASE + '/share/1/preview');
+    await expect(page.getByTestId('share-preview-view')).toBeVisible();
+    await page.getByTestId('share-preview-message-input').fill('Happy birthday');
+    await page.getByTestId('share-preview-apply-button').click();
+    await expect(page.getByTestId('share-preview-message')).toHaveText('Your message: Happy birthday');
+  });
+});
