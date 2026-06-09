@@ -1,6 +1,6 @@
 # Maison - Luxury E-Commerce Demo
 
-[![Docker Hub](https://img.shields.io/badge/Docker%20Hub-v1.5.0-blue?logo=docker)](https://hub.docker.com/r/youvegotnigel/maison)
+[![Docker Hub](https://img.shields.io/badge/Docker%20Hub-v1.6.0-blue?logo=docker)](https://hub.docker.com/r/youvegotnigel/maison)
 
 A two sided luxury marketplace built as an **Application Under Test (AUT)** for a Playwright
 automation framework. It deliberately exercises five testing pillars: **UI, Mobile, API, Accessibility,
