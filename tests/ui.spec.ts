@@ -255,3 +255,20 @@ test.describe('UI · multi-window', () => {
     expect(popups.length).toBe(3);
   });
 });
+
+test.describe('UI · window forms · certificate', () => {
+  test('verify form confirms a correct serial and rejects a wrong one', async ({ page }) => {
+    await page.goto(BASE + '/certificate/1');
+    await expect(page.getByTestId('certificate-view')).toBeVisible();
+
+    // Wrong serial → error branch
+    await page.getByTestId('certificate-serial-input').fill('NOPE');
+    await page.getByTestId('certificate-verify-button').click();
+    await expect(page.getByTestId('certificate-verify-error')).toBeVisible();
+
+    // Correct serial → verified branch
+    await page.getByTestId('certificate-serial-input').fill('MAISON-AC-0001');
+    await page.getByTestId('certificate-verify-button').click();
+    await expect(page.getByTestId('certificate-verified')).toBeVisible();
+  });
+});

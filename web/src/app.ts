@@ -1031,7 +1031,22 @@ async function renderCertificateWindow(id: string): Promise<void> {
         <dt>Issuer</dt><dd data-testid="certificate-issuer">${esc(c.issuer)}</dd>
         <dt>Material</dt><dd data-testid="certificate-material">${esc(c.material)}</dd>
         <dt>Issued</dt><dd data-testid="certificate-issued">${esc(c.issuedAt)}</dd>
-      </dl>`;
+      </dl>
+      <form class="window-form" data-testid="certificate-verify-form" novalidate>
+        <label for="cert-serial">Verify a serial number</label>
+        <input id="cert-serial" type="text" data-testid="certificate-serial-input" autocomplete="off" />
+        <button type="submit" class="btn btn--sm" data-testid="certificate-verify-button">Verify</button>
+      </form>
+      <div class="window-result" aria-live="polite" data-testid="certificate-result"></div>`;
+    const form = root.querySelector<HTMLFormElement>('[data-testid="certificate-verify-form"]')!;
+    const out = root.querySelector<HTMLElement>('[data-testid="certificate-result"]')!;
+    form.onsubmit = (e) => {
+      e.preventDefault();
+      const entered = root.querySelector<HTMLInputElement>('[data-testid="certificate-serial-input"]')!.value.trim();
+      out.innerHTML = entered === c.serialNo
+        ? `<p class="ok" data-testid="certificate-verified">✓ Verified authentic — ${esc(c.serialNo)}</p>`
+        : `<p class="err" data-testid="certificate-verify-error">Serial does not match this certificate.</p>`;
+    };
   } catch (e) {
     root.innerHTML = `
       <h1>Certificate of Authenticity</h1>
